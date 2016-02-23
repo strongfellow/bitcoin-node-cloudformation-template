@@ -1,13 +1,13 @@
 {
-  "AWSTemplateFormatVersion" : "2010-09-09",
+  "AWSTemplateFormatVersion": "2010-09-09",
 
-  "Description" : "A bitcoin node",
+  "Description": "A bitcoin node",
 
-  "Parameters" : {
+  "Parameters": {
     "KeyName": {
-      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
       "Type": "AWS::EC2::KeyPair::KeyName",
-      "ConstraintDescription" : "must be the name of an existing EC2 KeyPair.",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair.",
       "Default": "bitcoin-nodes"
     },
     "VPC": {
@@ -19,11 +19,11 @@
       "Type": "String",
       "Default": "subnet-bc2bb4d9"
     },
-    "InstanceType" : {
-      "Description" : "Bitcoin Node Instance Type",
-      "Type" : "String",
-      "Default" : "t2.micro",
-      "AllowedValues" : [
+    "InstanceType": {
+      "Description": "Bitcoin Node Instance Type",
+      "Type": "String",
+      "Default": "m3.medium",
+      "AllowedValues": [
         "t2.micro",
         "t2.small",
         "t2.medium",
@@ -32,24 +32,24 @@
         "m3.xlarge",
         "m3.2xlarge"
       ],
-      "ConstraintDescription" : "must be a valid EC2 instance type."
+      "ConstraintDescription": "must be a valid EC2 instance type."
     },
-
+    "RpcPassword": {
+      "Type": "String",
+      "NoEcho": "true",
+      "Default": "ChangeMe"
+    },
     "VolumeSize": {
-      "Default" : "60",
-      "Description" : "Size of /dev/sdh mount on the node",
-      "Type" : "Number",
-      "MinValue" : "60",
-      "MaxValue" : "120"
-
+      "Default": "100",
+      "Description": "Size of /dev/sdh mount on the node",
+      "Type": "Number",
+      "MinValue": "100",
+      "MaxValue": "300"
     }
   },
 
-  "Mappings" : {
+  "Mappings": {
     "AWSInstanceType2Arch": {
-      "t1.micro":  {
-        "Arch": "PV64"
-      },
       "t2.micro": {
         "Arch": "HVM64"
       },
@@ -74,110 +74,259 @@
     },
     "AWSRegionArch2AMI": {
       "us-east-1": {
-        "HVM64": "ami-dc5e75b4", 
+        "HVM64": "ami-dc5e75b4",
         "PV64": "ami-fc5e7594"
-      }, 
+      },
       "eu-west-1": {
-        "HVM64": "ami-5ba23a2c", 
+        "HVM64": "ami-5ba23a2c",
         "PV64": "ami-55a23a22"
-      }, 
+      },
       "sa-east-1": {
-        "HVM64": "ami-5788334a", 
+        "HVM64": "ami-5788334a",
         "PV64": "ami-5d883340"
-      }, 
+      },
       "ap-southeast-1": {
-        "HVM64": "ami-ecf1c1be", 
+        "HVM64": "ami-ecf1c1be",
         "PV64": "ami-e2f1c1b0"
-      }, 
+      },
       "ap-southeast-2": {
-        "HVM64": "ami-7763104d", 
+        "HVM64": "ami-7763104d",
         "PV64": "ami-79631043"
-      }, 
+      },
       "us-west-2": {
-        "HVM64": "ami-6d89a65d", 
+        "HVM64": "ami-6d89a65d",
         "PV64": "ami-7f89a64f"
-      }, 
+      },
       "us-west-1": {
-        "HVM64": "ami-d36a8b97", 
+        "HVM64": "ami-d36a8b97",
         "PV64": "ami-cf6a8b8b"
-      }, 
+      },
       "eu-central-1": {
-        "HVM64": "ami-b0cff2ad", 
+        "HVM64": "ami-b0cff2ad",
         "PV64": "ami-becff2a3"
-      }, 
+      },
       "ap-northeast-1": {
-        "HVM64": "ami-8f6d9d8f", 
+        "HVM64": "ami-8f6d9d8f",
         "PV64": "ami-836d9d83"
       }
     }
   },
 
-  "Resources" : {
-    "EC2Instance" : {
-      "Type" : "AWS::EC2::Instance",
-      "Properties" : {
-        "InstanceType" : { "Ref" : "InstanceType" },
-        "KeyName" : { "Ref" : "KeyName" },
-        "ImageId" : { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
-                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ] },
+  "Resources": {
+    "BitcoinNode": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "bitcoin": ["config1", "config2"]
+          },
+          "config1": {
+            "packages": {
+            },
+            "groups": {
+            },
+            "users": {
+              "bitcoin": {
+                "homeDir": "/data/bitcoin"
+              }
+            },
+            "sources": {
+            },
+            "files": {
+              "/etc/init/bitcoind.conf": {
+
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "description \"bitcoind\"",
+                      "",
+                      "start on filesystem",
+                      "stop on runlevel [!2345]",
+                      "oom never",
+                      "expect daemon",
+                      "respawn",
+                      "respawn limit 10 60 # 10 times in 60 seconds",
+                      "",
+                      "script",
+                      "user=bitcoin",
+                      "home=/data/bitcoin",
+                      "cmd=/usr/bin/bitcoind",
+                      "pidfile=$home/bitcoind.pid",
+                      "# Don't change anything below here unless you know what you're doing",
+                      "[[ -e $pidfile && ! -d \"/proc/$(cat $pidfile)\" ]] && rm $pidfile",
+                      "[[ -e $pidfile && \"$(cat /proc/$(cat $pidfile)/cmdline)\" != $cmd* ]] && rm $pidfile",
+                      "exec start-stop-daemon --start -c $user --chdir $home --pidfile $pidfile --startas $cmd -b --nicelevel 15 -m",
+                      "end script"
+                    ]
+                  ]
+                }
+              }
+            },
+            "commands": {
+              "001_add_bitcoin_repository": {
+                "command": "add-apt-repository ppa:bitcoin/bitcoin"
+              },
+              "002_apt_update": {
+                "command": "apt-get update"
+              }
+            },
+            "services": {
+            }
+          },
+          "config2": {
+            "packages": {
+              "apt": {
+                "bitcoind": []
+              }
+            },
+            "groups": {
+            },
+            "users": {
+              "bitcoin": {
+                "homeDir": "/data/bitcoin"
+              }
+            },
+            "sources": {
+            },
+            "files": {
+              "/data/bitcoin/.bitcoin/bitcoin.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "rpcuser=bitcoinrpc",
+                      "\n",
+                      "rpcpassword=", { "Ref": "RpcPassword" },
+                      "\n"
+                    ]
+                  ]
+                },
+                "mode": "000600",
+                "owner": "bitcoin",
+                "group": "bitcoin"
+              }
+            },
+            "commands": {
+              "000_chown": {
+                "command": "chown -R bitcoin:bitcoin /data/bitcoin"
+              },
+              "100_reload_configuration": {
+                "command": "initctl reload-configuration"
+              },
+              "200_start_bitcoind": {
+                "command": "start bitcoind"
+              }
+            },
+            "services": {
+            }
+          }
+        }
+      },
+      "Properties": {
+        "InstanceType": { "Ref": "InstanceType" },
+        "KeyName": { "Ref": "KeyName" },
+        "ImageId": { "Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" },
+                          { "Fn::FindInMap": [ "AWSInstanceType2Arch", { "Ref": "InstanceType" }, "Arch" ] } ] },
         "NetworkInterfaces": [
           {
             "AssociatePublicIpAddress": "true",
             "DeviceIndex": "0",
-            "GroupSet": [{ "Ref" : "InstanceSecurityGroup" }],
-            "SubnetId": { "Ref" : "Subnet" }
+            "GroupSet": [{ "Ref": "InstanceSecurityGroup" }],
+            "SubnetId": { "Ref": "Subnet" }
           }
-        ]
+        ],
+      "UserData": { "Fn::Base64": { "Fn::Join": ["", [
+        "#!/bin/bash\n",
+        "set -e\n",
+        "set -x\n",
+
+        "function error_exit\n",
+        "{\n",
+        "  cfn-signal -e 1 -r \"$1\" '", { "Ref": "WaitHandle" }, "'\n",
+        "  exit 1\n",
+        "}\n",
+
+        "while [ ! -e /dev/xvdi ]; do echo waiting for /dev/xvdi to attach; sleep 5; done \n",
+        "mkfs -t ext4 /dev/xvdi\n",
+        "mkdir /data\n",
+        "echo '/dev/xvdi       /data   ext4    defaults        0       2' >> /etc/fstab\n",
+        "mount -a\n",
+
+        "apt-get -y install python-setuptools\n",
+        "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+
+
+        "# Install application\n",
+        "cfn-init -s ", { "Ref": "AWS::StackId" }, " -r BitcoinNode -c bitcoin ",
+        " --region ", { "Ref": "AWS::Region" }, " || error_exit 'Failed to run cfn-init'\n", "\n",
+
+        "# All is well so signal success\n",
+        "cfn-signal -e $? '", { "Ref": "WaitHandle" }, "'\n"
+      ]]}}
       }
     },
 
-    "InstanceSecurityGroup" : {
-      "Type" : "AWS::EC2::SecurityGroup",
-      "Properties" : {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle"
+    },
+
+    "WaitCondition": {
+      "Type": "AWS::CloudFormation::WaitCondition",
+      "DependsOn": "BitcoinNode",
+      "Properties": {
+        "Handle": {"Ref": "WaitHandle"},
+        "Timeout": "300"
+      }
+    },
+
+    "InstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
         "VpcId": { "Ref": "VPC" },
-        "GroupDescription" : "Enable SSH access via port 22",
-        "SecurityGroupIngress" : [ {
-          "IpProtocol" : "tcp",
-          "FromPort" : "22",
-          "ToPort" : "22",
-          "CidrIp" : "0.0.0.0/0"
+        "GroupDescription": "Enable SSH access via port 22",
+        "SecurityGroupIngress": [ {
+          "IpProtocol": "tcp",
+          "FromPort": "22",
+          "ToPort": "22",
+          "CidrIp": "0.0.0.0/0"
         } ]
       }
     },
 
     "NewVolume": {
       "Type":"AWS::EC2::Volume",
-      "Properties" : {
-        "AvailabilityZone" : { "Fn::GetAtt" : [ "EC2Instance", "AvailabilityZone" ] },
-        "Size" : { "Ref": "VolumeSize" },
-        "VolumeType" : "gp2"
+      "Properties": {
+        "AvailabilityZone": { "Fn::GetAtt": [ "BitcoinNode", "AvailabilityZone" ] },
+        "Size": { "Ref": "VolumeSize" },
+        "VolumeType": "gp2"
       }
     },
-    "MountPoint" : {
-      "Type" : "AWS::EC2::VolumeAttachment",
-      "Properties" : {
-        "InstanceId" : { "Ref" : "EC2Instance" },
-        "VolumeId"  : { "Ref" : "NewVolume" },
-        "Device" : "/dev/xvdi"
+    "MountPoint": {
+      "Type": "AWS::EC2::VolumeAttachment",
+      "Properties": {
+        "InstanceId": { "Ref": "BitcoinNode" },
+        "VolumeId": { "Ref": "NewVolume" },
+        "Device": "/dev/xvdi"
       }
     }
   },
-  "Outputs" : {
-    "InstanceId" : {
-      "Description" : "InstanceId of the newly created EC2 instance",
-      "Value" : { "Ref" : "EC2Instance" }
+  "Outputs": {
+    "InstanceId": {
+      "Description": "InstanceId of the newly created EC2 instance",
+      "Value": { "Ref": "BitcoinNode" }
     },
-    "AZ" : {
-      "Description" : "Availability Zone of the newly created EC2 instance",
-      "Value" : { "Fn::GetAtt" : [ "EC2Instance", "AvailabilityZone" ] }
+    "AZ": {
+      "Description": "Availability Zone of the newly created EC2 instance",
+      "Value": { "Fn::GetAtt": [ "BitcoinNode", "AvailabilityZone" ] }
     },
-    "PublicDNS" : {
-      "Description" : "Public DNSName of the newly created EC2 instance",
-      "Value" : { "Fn::GetAtt" : [ "EC2Instance", "PublicDnsName" ] }
+    "PublicDNS": {
+      "Description": "Public DNSName of the newly created EC2 instance",
+      "Value": { "Fn::GetAtt": [ "BitcoinNode", "PublicDnsName" ] }
     },
-    "PublicIP" : {
-      "Description" : "Public IP address of the newly created EC2 instance",
-      "Value" : { "Fn::GetAtt" : [ "EC2Instance", "PublicIp" ] }
+    "PublicIP": {
+      "Description": "Public IP address of the newly created EC2 instance",
+      "Value": { "Fn::GetAtt": [ "BitcoinNode", "PublicIp" ] }
     }
   }
 }
