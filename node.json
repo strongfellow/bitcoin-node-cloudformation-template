@@ -60,54 +60,21 @@
         "Arch": "HVM64"
       },
       "m3.medium": {
-        "Arch": "PV64"
+        "Arch": "HVM64"
       },
       "m3.large": {
-        "Arch": "PV64"
+        "Arch": "HVM64"
       },
       "m3.xlarge": {
-        "Arch": "PV64"
+        "Arch": "HVM64"
       },
       "m3.2xlarge": {
-        "Arch": "PV64"
+        "Arch": "HVM64"
       }
     },
     "AWSRegionArch2AMI": {
-      "us-east-1": {
-        "HVM64": "ami-dc5e75b4",
-        "PV64": "ami-fc5e7594"
-      },
-      "eu-west-1": {
-        "HVM64": "ami-5ba23a2c",
-        "PV64": "ami-55a23a22"
-      },
-      "sa-east-1": {
-        "HVM64": "ami-5788334a",
-        "PV64": "ami-5d883340"
-      },
-      "ap-southeast-1": {
-        "HVM64": "ami-ecf1c1be",
-        "PV64": "ami-e2f1c1b0"
-      },
-      "ap-southeast-2": {
-        "HVM64": "ami-7763104d",
-        "PV64": "ami-79631043"
-      },
       "us-west-2": {
-        "HVM64": "ami-6d89a65d",
-        "PV64": "ami-7f89a64f"
-      },
-      "us-west-1": {
-        "HVM64": "ami-d36a8b97",
-        "PV64": "ami-cf6a8b8b"
-      },
-      "eu-central-1": {
-        "HVM64": "ami-b0cff2ad",
-        "PV64": "ami-becff2a3"
-      },
-      "ap-northeast-1": {
-        "HVM64": "ami-8f6d9d8f",
-        "PV64": "ami-836d9d83"
+        "HVM64": "ami-2f06e04f"
       }
     }
   },
@@ -132,37 +99,7 @@
             },
             "sources": {
             },
-            "files": {
-              "/etc/init/bitcoind.conf": {
-
-                "content": {
-                  "Fn::Join": [
-                    "\n",
-                    [
-                      "description \"bitcoind\"",
-                      "",
-                      "start on filesystem",
-                      "stop on runlevel [!2345]",
-                      "oom never",
-                      "expect daemon",
-                      "respawn",
-                      "respawn limit 10 60 # 10 times in 60 seconds",
-                      "",
-                      "script",
-                      "user=bitcoin",
-                      "home=/data/bitcoin",
-                      "cmd=/usr/bin/bitcoind",
-                      "pidfile=$home/bitcoind.pid",
-                      "# Don't change anything below here unless you know what you're doing",
-                      "[[ -e $pidfile && ! -d \"/proc/$(cat $pidfile)\" ]] && rm $pidfile",
-                      "[[ -e $pidfile && \"$(cat /proc/$(cat $pidfile)/cmdline)\" != $cmd* ]] && rm $pidfile",
-                      "exec start-stop-daemon --start -c $user --chdir $home --pidfile $pidfile --startas $cmd -b --nicelevel 15 -m",
-                      "end script"
-                    ]
-                  ]
-                }
-              }
-            },
+            "files": {},
             "commands": {
               "001_add_bitcoin_repository": {
                 "command": "add-apt-repository ppa:bitcoin/bitcoin"
@@ -180,15 +117,9 @@
                 "bitcoind": []
               }
             },
-            "groups": {
-            },
-            "users": {
-              "bitcoin": {
-                "homeDir": "/data/bitcoin"
-              }
-            },
-            "sources": {
-            },
+            "groups": {},
+            "users": {},
+            "sources": {},
             "files": {
               "/data/bitcoin/.bitcoin/bitcoin.conf": {
                 "content": {
@@ -210,12 +141,6 @@
             "commands": {
               "000_chown": {
                 "command": "chown -R bitcoin:bitcoin /data/bitcoin"
-              },
-              "100_reload_configuration": {
-                "command": "initctl reload-configuration"
-              },
-              "200_start_bitcoind": {
-                "command": "start bitcoind"
               }
             },
             "services": {
