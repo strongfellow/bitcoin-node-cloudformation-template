@@ -2,6 +2,16 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "A bitcoin node",
   "Parameters": {
+    "BitcoinPort": {
+      "Description": "What port bitcoin will accept connections on.",
+      "Type": "Number",
+      "Default": "8333"
+    },
+    "BitcoinCheckBlocks": {
+      "Description": "See https://en.bitcoin.it/wiki/Running_Bitcoin#Command-line_arguments",
+      "Type": "Number",
+      "Default": "10"
+    },
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
       "Type": "AWS::EC2::KeyPair::KeyName",
@@ -20,11 +30,12 @@
     "InstanceType": {
       "Description": "Bitcoin Node Instance Type",
       "Type": "String",
-      "Default": "c4.large",
+      "Default": "t2.medium",
       "AllowedValues": [
         "t2.micro",
         "t2.small",
         "t2.medium",
+        "t2.large",
         "m3.medium",
         "m3.large",
         "m3.xlarge",
@@ -36,7 +47,7 @@
     "RpcPassword": {
       "Type": "String",
       "NoEcho": "true",
-      "Default": "ChangeMe"
+      "Default": "andrew"
     },
     "VolumeSize": {
       "Default": "100",
@@ -47,7 +58,7 @@
     }
   },
   "Mappings": {
-    "AWSInstanceType2Arch": {
+    "InstanceTypeMap": {
       "t2.micro": {
         "Arch": "HVM64"
       },
@@ -73,9 +84,10 @@
         "Arch": "HVM64"
       }
     },
-    "AWSRegionArch2AMI": {
+    "RegionMap": {
       "us-west-2": {
-        "HVM64": "ami-2f06e04f"
+        "HVM64": "ami-2f06e04f",
+        "SnapshotId": "snap-0b4f4c49"
       }
     }
   },
@@ -90,6 +102,9 @@
           },
           "config1": {
             "packages": {
+              "apt": {
+                "emacs": []
+              }
             },
             "groups": {
             },
@@ -155,6 +170,10 @@
                       "rpcuser=bitcoinrpc",
                       "\n",
                       "rpcpassword=", { "Ref": "RpcPassword" },
+                      "\n",
+                      "port=", { "Ref": "BitcoinPort" },
+                      "\n",
+                      "checkblocks=", { "Ref": "BitcoinCheckBlocks" },
                       "\n"
                     ]
                   ]
@@ -183,60 +202,60 @@
       "Properties": {
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Ref": "KeyName" },
-        "ImageId": { "Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" },
-                          { "Fn::FindInMap": [ "AWSInstanceType2Arch", { "Ref": "InstanceType" }, "Arch" ] } ] },
-        "NetworkInterfaces": [
-          {
-            "AssociatePublicIpAddress": "true",
-            "DeviceIndex": "0",
-            "GroupSet": [{ "Ref": "InstanceSecurityGroup" }],
-            "SubnetId": { "Ref": "Subnet" }
+        "ImageId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" },
+                          { "Fn::FindInMap": [ "InstanceTypeMap", { "Ref": "InstanceType" }, "Arch" ] } ] },
+        "NetworkInterfaces": [{
+          "AssociatePublicIpAddress": "true",
+          "DeviceIndex": "0",
+          "GroupSet": [{ "Ref": "InstanceSecurityGroup" }],
+          "SubnetId": { "Ref": "Subnet" }
+        }],
+        "BlockDeviceMappings": [{
+          "DeviceName": "/dev/xvdi",
+          "Ebs": {
+            "DeleteOnTermination": true,
+            "SnapshotId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region"}, "SnapshotId" ] },
+            "VolumeSize": { "Ref": "VolumeSize" },
+            "VolumeType": "gp2"
           }
-        ],
-      "UserData": { "Fn::Base64": { "Fn::Join": ["", [
-        "#!/bin/bash\n",
-        "set -e\n",
-        "set -x\n",
+        }],
+        "UserData": { "Fn::Base64": { "Fn::Join": ["", [
+          "#!/bin/bash\n",
+          "set -e\n",
+          "set -x\n",
+          "while [ ! -e /dev/xvdi ]; do echo waiting for /dev/xvdi to attach; sleep 5; done \n",
+          "# mkfs -t ext4 /dev/xvdi\n",
+          "mkdir -p /data\n",
+          "echo '/dev/xvdi       /data   ext4    defaults        0       2' >> /etc/fstab\n",
+          "mount -a\n",
 
-        "function error_exit\n",
-        "{\n",
-        "  cfn-signal -e 1 -r \"$1\" '", { "Ref": "WaitHandle" }, "'\n",
-        "  exit 1\n",
-        "}\n",
+          "# install cfn tools\n",
+          "apt-get -y install python-setuptools\n",
+          "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
 
-        "while [ ! -e /dev/xvdi ]; do echo waiting for /dev/xvdi to attach; sleep 5; done \n",
-        "mkfs -t ext4 /dev/xvdi\n",
-        "mkdir /data\n",
-        "echo '/dev/xvdi       /data   ext4    defaults        0       2' >> /etc/fstab\n",
-        "mount -a\n",
+          "# Install application\n",
+          "cfn-init ",
+          "  --stack ", { "Ref": "AWS::StackId" },
+          "  --resource BitcoinNode ",
+          "  --configsets bitcoin ",
+          "  --region ", { "Ref": "AWS::Region" },
+          "\n",
 
-        "apt-get -y install python-setuptools\n",
-        "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-
-
-        "# Install application\n",
-        "cfn-init -s ", { "Ref": "AWS::StackId" }, " -r BitcoinNode -c bitcoin ",
-        " --region ", { "Ref": "AWS::Region" }, " || error_exit 'Failed to run cfn-init'\n", "\n",
-
-        "# All is well so signal success\n",
-        "cfn-signal -e $? '", { "Ref": "WaitHandle" }, "'\n"
-      ]]}}
+          "# All is well so signal success\n",
+          "cfn-signal ",
+          "  --exit-code $? ",
+          "  --stack ", { "Ref": "AWS::StackName" },
+          "  --resource BitcoinNode ",
+          "  --region ", {"Ref": "AWS::Region" },
+          "\n"
+        ]]}}
+      },
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT5M"
+        }
       }
     },
-
-    "WaitHandle": {
-      "Type": "AWS::CloudFormation::WaitConditionHandle"
-    },
-
-    "WaitCondition": {
-      "Type": "AWS::CloudFormation::WaitCondition",
-      "DependsOn": "BitcoinNode",
-      "Properties": {
-        "Handle": {"Ref": "WaitHandle"},
-        "Timeout": "300"
-      }
-    },
-
     "InstanceSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
@@ -247,27 +266,16 @@
           "FromPort": "22",
           "ToPort": "22",
           "CidrIp": "0.0.0.0/0"
+        }, {
+          "IpProtocol": "tcp",
+          "FromPort": { "Ref": "BitcoinPort" },
+          "ToPort": { "Ref": "BitcoinPort" },
+          "CidrIp": "0.0.0.0/0"
         } ]
-      }
-    },
-
-    "NewVolume": {
-      "Type":"AWS::EC2::Volume",
-      "Properties": {
-        "AvailabilityZone": { "Fn::GetAtt": [ "BitcoinNode", "AvailabilityZone" ] },
-        "Size": { "Ref": "VolumeSize" },
-        "VolumeType": "gp2"
-      }
-    },
-    "MountPoint": {
-      "Type": "AWS::EC2::VolumeAttachment",
-      "Properties": {
-        "InstanceId": { "Ref": "BitcoinNode" },
-        "VolumeId": { "Ref": "NewVolume" },
-        "Device": "/dev/xvdi"
       }
     }
   },
+
   "Outputs": {
     "InstanceId": {
       "Description": "InstanceId of the newly created EC2 instance",
