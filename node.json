@@ -2,6 +2,12 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "A bitcoin node",
   "Parameters": {
+    "UseSnapshot": {
+      "Description": "whether to start the EBS from a snapshot",
+      "Type": "String",
+      "AllowedValues": [ "true", "false" ],
+      "Default": "true"
+    },
     "BitcoinPort": {
       "Description": "What port bitcoin will accept connections on.",
       "Type": "Number",
@@ -55,6 +61,11 @@
       "Type": "Number",
       "MinValue": "100",
       "MaxValue": "300"
+    }
+  },
+  "Conditions": {
+    "UseSnapshotCondition": {
+      "Fn::Equals": [{ "Ref": "UseSnapshot"}, "true"]
     }
   },
   "Mappings": {
@@ -214,7 +225,17 @@
           "DeviceName": "/dev/xvdi",
           "Ebs": {
             "DeleteOnTermination": true,
-            "SnapshotId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region"}, "SnapshotId" ] },
+            "SnapshotId": {
+              "Fn::If": [
+                "UseSnapshotCondition",
+                {
+                  "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region"}, "SnapshotId" ]
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "VolumeSize": { "Ref": "VolumeSize" },
             "VolumeType": "gp2"
           }
@@ -224,7 +245,14 @@
           "set -e\n",
           "set -x\n",
           "while [ ! -e /dev/xvdi ]; do echo waiting for /dev/xvdi to attach; sleep 5; done \n",
-          "# mkfs -t ext4 /dev/xvdi\n",
+          {
+            "Fn::If": [
+              "UseSnapshotCondition",
+              "# ",
+              ""
+            ]
+          },
+          "mkfs -t ext4 /dev/xvdi\n",
           "mkdir -p /data\n",
           "echo '/dev/xvdi       /data   ext4    defaults        0       2' >> /etc/fstab\n",
           "mount -a\n",
