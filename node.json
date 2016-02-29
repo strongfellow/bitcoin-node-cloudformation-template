@@ -98,7 +98,7 @@
     "RegionMap": {
       "us-west-2": {
         "HVM64": "ami-2f06e04f",
-        "SnapshotId": "snap-0b4f4c49"
+        "SnapshotId": "snap-2bdc5f74"
       }
     }
   },
