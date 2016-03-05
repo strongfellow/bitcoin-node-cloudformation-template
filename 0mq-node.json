@@ -228,18 +228,18 @@
                 "command": "./configure --disable-wallet --with-zeromq",
                 "cwd": "~/src/bitcoin"
               },
-              "1200": {
+              "1200_make": {
                 "command": "make",
                 "cwd": "~/src/bitcoin"
               },
-              "1400": {
+              "1400_make_install": {
                 "command": "make install",
                 "cwd": "~/src/bitcoin"
               },
-              "1600": {
+              "1600_enable_bitcoind": {
                 "command": "systemctl enable bitcoind"
               },
-              "1800": {
+              "1800_start_bitcoind": {
                 "command": "systemctl start bitcoind"
               }
             },
