@@ -111,7 +111,8 @@
           "config1": {
             "packages": {
               "apt": {
-                "emacs": []
+                "emacs": [],
+                "python-zmq": []
               }
             },
             "groups": {
