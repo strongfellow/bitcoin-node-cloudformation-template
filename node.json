@@ -2,36 +2,29 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "A bitcoin node",
   "Parameters": {
-    "UseSnapshot": {
-      "Description": "whether to start the EBS from a snapshot",
-      "Type": "String",
-      "AllowedValues": [ "true", "false" ],
-      "Default": "true"
-    },
     "BitcoinPort": {
-      "Description": "What port bitcoin will accept connections on.",
       "Type": "Number",
       "Default": "8333"
+    },
+    "BitcoinRpcPort": {
+      "Type": "Number",
+      "Default": "8332"
     },
     "BitcoinCheckBlocks": {
       "Description": "See https://en.bitcoin.it/wiki/Running_Bitcoin#Command-line_arguments",
       "Type": "Number",
       "Default": "10"
     },
+    "BitcoinRpcUser": {
+      "Type": "String",
+      "Default": "bitcoinrpc"
+    },
+    "BitcoinRpcPassword": {
+      "Type": "String",
+      "NoEcho": "true"
+    },
     "KeyName": {
-      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
-      "Type": "AWS::EC2::KeyPair::KeyName",
-      "ConstraintDescription": "must be the name of an existing EC2 KeyPair.",
-      "Default": "bitcoin-nodes"
-    },
-    "VPC": {
-      "Type": "String",
-      "Description": "The VPC",
-      "Default": "vpc-599c723d"
-    },
-    "Subnet": {
-      "Type": "String",
-      "Default": "subnet-09ee1e6d"
+      "Type": "AWS::EC2::KeyPair::KeyName"
     },
     "InstanceType": {
       "Description": "Bitcoin Node Instance Type",
@@ -47,25 +40,30 @@
         "m3.xlarge",
         "m3.2xlarge",
         "c4.large"
-      ],
-      "ConstraintDescription": "must be a valid EC2 instance type."
+      ]
     },
-    "RpcPassword": {
+    "Snapshot": {
       "Type": "String",
-      "NoEcho": "true",
-      "Default": "andrew"
+      "Description": "The id of the snapshot to use; if omitted, a new empty volume will be created.",
+      "Default": "NO_SNAPSHOT_ID"
+    },
+    "Subnet": {
+      "Type": "AWS::EC2::Subnet::Id"
     },
     "VolumeSize": {
       "Default": "100",
-      "Description": "Size of /dev/sdh mount on the node",
+      "Description": "Size of EBS volume",
       "Type": "Number",
       "MinValue": "100",
       "MaxValue": "300"
+    },
+    "VPC": {
+      "Type": "AWS::EC2::VPC::Id"
     }
   },
   "Conditions": {
     "UseSnapshotCondition": {
-      "Fn::Equals": [{ "Ref": "UseSnapshot"}, "true"]
+      "Fn::Not": [ { "Fn::Equals": [{ "Ref": "Snapshot"}, "NO_SNAPSHOT_ID"] } ]
     }
   },
   "Mappings": {
@@ -97,8 +95,7 @@
     },
     "RegionMap": {
       "us-west-2": {
-        "HVM64": "ami-2f06e04f",
-        "SnapshotId": "snap-2bdc5f74"
+        "HVM64": "ami-2f06e04f"
       }
     }
   },
@@ -178,11 +175,13 @@
                   "Fn::Join": [
                     "",
                     [
-                      "rpcuser=bitcoinrpc",
+                      "rpcuser=", { "Ref": "BitcoinRpcUser" },
                       "\n",
-                      "rpcpassword=", { "Ref": "RpcPassword" },
+                      "rpcpassword=", { "Ref": "BitcoinRpcPassword" },
                       "\n",
                       "port=", { "Ref": "BitcoinPort" },
+                      "\n",
+                      "rpcport=", { "Ref": "BitcoinRpcPort" },
                       "\n",
                       "checkblocks=", { "Ref": "BitcoinCheckBlocks" },
                       "\n"
@@ -225,16 +224,8 @@
           "DeviceName": "/dev/xvdi",
           "Ebs": {
             "DeleteOnTermination": true,
-            "SnapshotId": {
-              "Fn::If": [
-                "UseSnapshotCondition",
-                {
-                  "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region"}, "SnapshotId" ]
-                },
-                {
-                  "Ref": "AWS::NoValue"
-                }
-              ]
+            "Snapshot": {
+              "Fn::If": [ "UseSnapshotCondition", { "Ref": "Snapshot" }, { "Ref": "AWS::NoValue" } ]
             },
             "VolumeSize": { "Ref": "VolumeSize" },
             "VolumeType": "gp2"
