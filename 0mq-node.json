@@ -1,0 +1,355 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "A bitcoin node",
+  "Parameters": {
+    "BitcoinPort": {
+      "Type": "Number",
+      "Default": "8333"
+    },
+    "BitcoinRpcPort": {
+      "Type": "Number",
+      "Default": "8332"
+    },
+    "BitcoinCheckBlocks": {
+      "Description": "See https://en.bitcoin.it/wiki/Running_Bitcoin#Command-line_arguments",
+      "Type": "Number",
+      "Default": "10"
+    },
+    "BitcoinRpcUser": {
+      "Type": "String",
+      "Default": "bitcoinrpc"
+    },
+    "BitcoinRpcPassword": {
+      "Type": "String",
+      "NoEcho": "true"
+    },
+    "KeyName": {
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "InstanceType": {
+      "Description": "Bitcoin Node Instance Type",
+      "Type": "String",
+      "Default": "t2.medium",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c4.large"
+      ]
+    },
+    "Snapshot": {
+      "Type": "String",
+      "Description": "The id of the snapshot to use; if omitted, a new empty volume will be created.",
+      "Default": "NO_SNAPSHOT_ID"
+    },
+    "Subnet": {
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "VolumeSize": {
+      "Default": "100",
+      "Description": "Size of EBS volume",
+      "Type": "Number",
+      "MinValue": "100",
+      "MaxValue": "300"
+    },
+    "VPC": {
+      "Type": "AWS::EC2::VPC::Id"
+    }
+  },
+  "Conditions": {
+    "UseSnapshotCondition": {
+      "Fn::Not": [ { "Fn::Equals": [{ "Ref": "Snapshot"}, "NO_SNAPSHOT_ID"] } ]
+    }
+  },
+  "Mappings": {
+    "InstanceTypeMap": {
+      "t2.micro": {
+        "Arch": "HVM64"
+      },
+      "t2.small": {
+        "Arch": "HVM64"
+      },
+      "t2.medium": {
+        "Arch": "HVM64"
+      },
+      "m3.medium": {
+        "Arch": "HVM64"
+      },
+      "m3.large": {
+        "Arch": "HVM64"
+      },
+      "m3.xlarge": {
+        "Arch": "HVM64"
+      },
+      "m3.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "c4.large": {
+        "Arch": "HVM64"
+      }
+    },
+    "RegionMap": {
+      "us-west-2": {
+        "HVM64": "ami-2f06e04f"
+      }
+    }
+  },
+
+  "Resources": {
+    "BitcoinNode": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "bitcoin": ["config1", "config2"]
+          },
+          "config1": {
+            "packages": {
+              "apt": {
+                "emacs": []
+              }
+            },
+            "groups": {
+            },
+            "users": {
+              "bitcoin": {
+                "homeDir": "/data/bitcoin"
+              }
+            },
+            "sources": {
+            },
+            "files": {
+              "/etc/systemd/system/bitcoind.service": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "[Unit]",
+                      "Description=Bitcoin daemon service",
+                      "After=network.target",
+                      "",
+                      "[Service]",
+                      "Type=simple",
+                      "User=bitcoin",
+                      "ExecStart=/usr/bin/bitcoind",
+                      "",
+                      "[Install]",
+                      "WantedBy=multi-user.target",
+                      ""
+                    ]
+                  ]
+                },
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              }
+             },
+            "commands": {
+            },
+            "services": {
+            }
+          },
+          "config2": {
+            "packages": {
+              "apt": {
+                "build-essential": [],
+                "libtool": [],
+                "autotools-dev": [],
+                "automake": [],
+                "pkg-config": [],
+                "libssl-dev": [],
+                "libevent-dev": [],
+                "bsdmainutils": [],
+                "libboost-system-dev": [],
+                "libboost-filesystem-dev": [],
+                "libboost-chrono-dev": [],
+                "libboost-program-options-dev": [],
+                "libboost-test-dev": [],
+                "libboost-thread-dev": [],
+                "libzmq3-dev": []
+              }
+            },
+            "groups": {},
+            "users": {},
+            "sources": {},
+            "files": {
+              "/data/bitcoin/.bitcoin/bitcoin.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "rpcuser=", { "Ref": "BitcoinRpcUser" },
+                      "\n",
+                      "rpcpassword=", { "Ref": "BitcoinRpcPassword" },
+                      "\n",
+                      "port=", { "Ref": "BitcoinPort" },
+                      "\n",
+                      "rpcport=", { "Ref": "BitcoinRpcPort" },
+                      "\n",
+                      "checkblocks=", { "Ref": "BitcoinCheckBlocks" },
+                      "\n"
+                    ]
+                  ]
+                },
+                "mode": "000600",
+                "owner": "bitcoin",
+                "group": "bitcoin"
+              }
+            },
+            "commands": {
+              "0000_chown": {
+                "command": "chown -R bitcoin:bitcoin /data/bitcoin"
+              },
+              "0200_apt_update": {
+                "command": "apt-get update"
+              },
+              "0300_mkdir_src": {
+                "command": "mkdir -p src",
+                "cwd": "~"
+              },
+              "0400_git_clone": {
+                "command": "git clone https://github.com/bitcoin/bitcoin.git",
+                "cwd": "~/src"
+              },
+              "0600_git_checkout": {
+                "command": "git checkout tags/v0.12.0 -b v0.12.0",
+                "cwd": "~/src/bitcoin"
+              },
+              "0800_autogen": {
+                "command": "./autogen.sh",
+                "cwd": "~/src/bitcoin"
+              },
+              "1000_configure": {
+                "command": "./configure --disable-wallet --with-zeromq",
+                "cwd": "~/src/bitcoin"
+              },
+              "1200": {
+                "command": "make",
+                "cwd": "~/src/bitcoin"
+              },
+              "1400": {
+                "command": "make install",
+                "cwd": "~/src/bitcoin"
+              },
+              "1600": {
+                "command": "systemctl enable bitcoind"
+              },
+              "1800": {
+                "command": "systemctl start bitcoind"
+              }
+            },
+            "services": {
+            }
+          }
+        }
+      },
+      "Properties": {
+        "InstanceType": { "Ref": "InstanceType" },
+        "KeyName": { "Ref": "KeyName" },
+        "ImageId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" },
+                          { "Fn::FindInMap": [ "InstanceTypeMap", { "Ref": "InstanceType" }, "Arch" ] } ] },
+        "NetworkInterfaces": [{
+          "AssociatePublicIpAddress": "true",
+          "DeviceIndex": "0",
+          "GroupSet": [{ "Ref": "InstanceSecurityGroup" }],
+          "SubnetId": { "Ref": "Subnet" }
+        }],
+        "BlockDeviceMappings": [{
+          "DeviceName": "/dev/xvdi",
+          "Ebs": {
+            "DeleteOnTermination": true,
+            "Snapshot": {
+              "Fn::If": [ "UseSnapshotCondition", { "Ref": "Snapshot" }, { "Ref": "AWS::NoValue" } ]
+            },
+            "VolumeSize": { "Ref": "VolumeSize" },
+            "VolumeType": "gp2"
+          }
+        }],
+        "UserData": { "Fn::Base64": { "Fn::Join": ["", [
+          "#!/bin/bash\n",
+          "set -e\n",
+          "set -x\n",
+          "while [ ! -e /dev/xvdi ]; do echo waiting for /dev/xvdi to attach; sleep 5; done \n",
+          {
+            "Fn::If": [
+              "UseSnapshotCondition",
+              "# ",
+              ""
+            ]
+          },
+          "mkfs -t ext4 /dev/xvdi\n",
+          "mkdir -p /data\n",
+          "echo '/dev/xvdi       /data   ext4    defaults        0       2' >> /etc/fstab\n",
+          "mount -a\n",
+
+          "# install cfn tools\n",
+          "apt-get -y install python-setuptools\n",
+          "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+
+          "# Install application\n",
+          "cfn-init ",
+          "  --stack ", { "Ref": "AWS::StackId" },
+          "  --resource BitcoinNode ",
+          "  --configsets bitcoin ",
+          "  --region ", { "Ref": "AWS::Region" },
+          "\n",
+
+          "# All is well so signal success\n",
+          "cfn-signal ",
+          "  --exit-code $? ",
+          "  --stack ", { "Ref": "AWS::StackName" },
+          "  --resource BitcoinNode ",
+          "  --region ", {"Ref": "AWS::Region" },
+          "\n"
+        ]]}}
+      },
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT15M"
+        }
+      }
+    },
+    "InstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "GroupDescription": "Enable SSH access via port 22",
+        "SecurityGroupIngress": [ {
+          "IpProtocol": "tcp",
+          "FromPort": "22",
+          "ToPort": "22",
+          "CidrIp": "0.0.0.0/0"
+        }, {
+          "IpProtocol": "tcp",
+          "FromPort": { "Ref": "BitcoinPort" },
+          "ToPort": { "Ref": "BitcoinPort" },
+          "CidrIp": "0.0.0.0/0"
+        } ]
+      }
+    }
+  },
+
+  "Outputs": {
+    "InstanceId": {
+      "Description": "InstanceId of the newly created EC2 instance",
+      "Value": { "Ref": "BitcoinNode" }
+    },
+    "AZ": {
+      "Description": "Availability Zone of the newly created EC2 instance",
+      "Value": { "Fn::GetAtt": [ "BitcoinNode", "AvailabilityZone" ] }
+    },
+    "PublicDNS": {
+      "Description": "Public DNSName of the newly created EC2 instance",
+      "Value": { "Fn::GetAtt": [ "BitcoinNode", "PublicDnsName" ] }
+    },
+    "PublicIP": {
+      "Description": "Public IP address of the newly created EC2 instance",
+      "Value": { "Fn::GetAtt": [ "BitcoinNode", "PublicIp" ] }
+    }
+  }
+}
