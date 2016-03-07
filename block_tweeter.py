@@ -58,7 +58,7 @@ def main():
     zmqSubSocket.connect("tcp://127.0.0.1:%i" % port)
 
     bucket = 'strongfellow.com'
-    template = 'Bitcoin Block Mined, %s: http://strongfellow.com/%s #btc #bitcoin'
+    template = 'Bitcoin Block Mined, %s: http://strongfellow.com/blocks/%s #btc #bitcoin'
 
     try:
         while True:
