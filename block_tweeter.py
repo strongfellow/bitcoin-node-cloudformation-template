@@ -32,6 +32,24 @@ def put(s3, bucket, key, bs):
     s3.Object('strongfellow.com', key).put(Body=bs)
     logging.info('sucess putting object at s3://%s/%s', bucket, key)
 
+def copy(s3, source_bucket, source_key, dest_bucket, dest_key):
+    logging.info('copying object from s3://%s/%s to s3://%s/%s',
+                 source_bucket,
+                 source_key,
+                 dest_bucket,
+                 dest_key)
+    s3.copy_object(
+        Bucket=dest_bucket,
+        Key=dest_key,
+        CopySource={'Bucket': source_bucket, 'Key': source_key},
+    )
+    logging.info('sucess copying object from s3://%s/%s to s3://%s/%s',
+                 source_bucket,
+                 source_key,
+                 dest_bucket,
+                 dest_key)
+
+
 def main():
     logging.basicConfig(level=logging.INFO)
 
@@ -44,6 +62,7 @@ def main():
                     access_token_key=config.get('twitter', 'access_token_key'),
                     access_token_secret=config.get('twitter', 'access_token_secret'))
     s3 = boto3.resource('s3')
+    s3_client = boto3.client('s3')
 
     print(t.VerifyCredentials())
 
@@ -63,7 +82,8 @@ def main():
     try:
         while True:
             msg = zmqSubSocket.recv_multipart()
-            d = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
+            now = datetime.utcnow()
+            d = now.strftime('%Y-%m-%dT%H:%M:%S')
             topic = str(msg[0])
             body = msg[1]
             logging.info('processing topic %s at %s', topic, d) 
@@ -77,6 +97,9 @@ def main():
                 put(s3, bucket, key, body)
                 message = template % (d, h)
                 tweet(t, message)
+                copy(s3_client, bucket, key,
+                     'blocks.strongfellow.com',
+                     'daily/%d-%02d-%02d/%s' % (now.year, now.month, now.day, h))
             elif topic == "rawtx":
                 pass
 #                h = tx_hash(body)
