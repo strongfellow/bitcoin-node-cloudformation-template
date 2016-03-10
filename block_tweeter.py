@@ -24,8 +24,11 @@ def tx_hash(bs):
 
 def tweet(t, message):
     logging.info('posting %s', message)
-    status = t.PostUpdate(message)
-    logging.info(status)
+    try:
+        status = t.PostUpdate(message)
+        logging.info(status)
+    except:
+        logging.exception('problem with tweet')
 
 def put(s3, bucket, key, bs):
     logging.info('putting object at s3://%s/%s', bucket, key)
