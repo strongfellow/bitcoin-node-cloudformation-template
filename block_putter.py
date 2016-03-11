@@ -13,12 +13,11 @@ def read_exactly(input, n):
         raise EOFError
     return result
 
-def hex(bs):
-    return binascii.hexlify(bs)
+_hex = binascii.hexlify
 
 def double_sha256(bs):
     hash = hashlib.sha256(hashlib.sha256(bs).digest()).digest()
-    return hex(hash[::-1])
+    return _hex(hash[::-1])
 
 def block_hash(bs):
     return double_sha256(bs[:80])
@@ -30,20 +29,24 @@ def little_endian(input, n):
     bs = read_exactly(input, n)
     return sum(ord(b) << (i * 8) for i, b in enumerate(bs)) 
 
+MAIN_NETWORK = 'f9beb4d9'
+
 def main():
     logging.basicConfig(level=logging.INFO)
     s3 = boto3.client('s3')
     BUCKET = 'strongfellow.com'
     while True:
-        network = hex(read_exactly(sys.stdin, 4))
+        network = _hex(read_exactly(sys.stdin, 4))
         length = little_endian(sys.stdin, 4)
         block = read_exactly(sys.stdin, length)
         h = block_hash(block)
 
-        if network != 'f9beb4d9':
+        if network != MAIN_NETWORK:
             raise Exception('unexpected network: %s' % network)
+        if not h.startswith('0000'):
+            raise Exception('block hash %s doesnt have leading zeroes' % h)
 
-        md5 = hex(hashlib.md5(block).digest())
+        md5 = _hex(hashlib.md5(block).digest())
         print '%s\t%d\t%s\t%s' % (network, length, h, md5)
         key = 'blocks/%s' % h
         try:
