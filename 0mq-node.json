@@ -206,9 +206,6 @@
               "0000_chown": {
                 "command": "chown -R bitcoin:bitcoin /data/bitcoin"
               },
-              "0200_apt_update": {
-                "command": "apt-get update"
-              },
               "0300_mkdir_src": {
                 "command": "mkdir -p src",
                 "cwd": "~"
@@ -264,7 +261,7 @@
           "DeviceName": "/dev/xvdi",
           "Ebs": {
             "DeleteOnTermination": true,
-            "Snapshot": {
+            "SnapshotId": {
               "Fn::If": [ "UseSnapshotCondition", { "Ref": "Snapshot" }, { "Ref": "AWS::NoValue" } ]
             },
             "VolumeSize": { "Ref": "VolumeSize" },
@@ -275,6 +272,7 @@
           "#!/bin/bash\n",
           "set -e\n",
           "set -x\n",
+          "apt-get update\n",
           "while [ ! -e /dev/xvdi ]; do echo waiting for /dev/xvdi to attach; sleep 5; done \n",
           {
             "Fn::If": [

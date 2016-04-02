@@ -153,9 +153,6 @@
             "commands": {
               "001_add_bitcoin_repository": {
                 "command": "add-apt-repository ppa:bitcoin/bitcoin"
-              },
-              "002_apt_update": {
-                "command": "apt-get update"
               }
             },
             "services": {
@@ -225,7 +222,7 @@
           "DeviceName": "/dev/xvdi",
           "Ebs": {
             "DeleteOnTermination": true,
-            "Snapshot": {
+            "SnapshotId": {
               "Fn::If": [ "UseSnapshotCondition", { "Ref": "Snapshot" }, { "Ref": "AWS::NoValue" } ]
             },
             "VolumeSize": { "Ref": "VolumeSize" },
@@ -236,6 +233,7 @@
           "#!/bin/bash\n",
           "set -e\n",
           "set -x\n",
+          "apt-get update\n",
           "while [ ! -e /dev/xvdi ]; do echo waiting for /dev/xvdi to attach; sleep 5; done \n",
           {
             "Fn::If": [
