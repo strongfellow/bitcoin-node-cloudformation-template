@@ -10,6 +10,22 @@
       "Type": "Number",
       "Default": "8332"
     },
+    "HashTxPort": {
+      "Type": "Number",
+      "Default": "28332"
+    },
+    "HashBlockPort": {
+      "Type": "Number",
+      "Default": "28333"
+    },
+    "RawTxPort": {
+      "Type": "Number",
+      "Default": "28334"
+    },
+    "RawBlockPort": {
+      "Type": "Number",
+      "Default": "28335"
+    },
     "BitcoinCheckBlocks": {
       "Description": "See https://en.bitcoin.it/wiki/Running_Bitcoin#Command-line_arguments",
       "Type": "Number",
@@ -101,9 +117,51 @@
   },
 
   "Resources": {
+    "Role": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version" : "2012-10-17",
+          "Statement": [ {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": [ "ec2.amazonaws.com" ]
+            },
+            "Action": [ "sts:AssumeRole" ]
+          } ]
+        },
+        "Policies": [ {
+          "PolicyName": "read-software",
+          "PolicyDocument": {
+            "Version" : "2012-10-17",
+            "Statement": [ {
+              "Effect": "Allow",
+              "Action": "s3:GetObject",
+              "Resource": "arn:aws:s3:::software-us-west-2.strongfellow.com/bitcoin/*"
+            } ]
+          }
+        } ]
+      }
+    },
+
+    "InstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [ { "Ref": "Role" } ]
+      }
+    },
+
     "BitcoinNode": {
       "Type": "AWS::EC2::Instance",
       "Metadata": {
+        "AWS::CloudFormation::Authentication": {
+          "S3AccessCreds": {
+            "type": "S3",
+            "roleName": { "Ref" : "Role" },
+            "buckets" : [ "software-us-west-2.strongfellow.com" ]
+          }
+        },
         "AWS::CloudFormation::Init": {
           "configSets": {
             "bitcoin": ["config1", "config2"]
@@ -193,6 +251,15 @@
                       "rpcport=", { "Ref": "BitcoinRpcPort" },
                       "\n",
                       "checkblocks=", { "Ref": "BitcoinCheckBlocks" },
+                      "\n",
+                      "\n",
+                      "zmqpubhashtx=tcp://127.0.0.1:", { "Ref": "HashTxPort" },
+                      "\n",
+                      "zmqpubhashblock=tcp://127.0.0.1:", { "Ref": "HashBlockPort" },
+                      "\n",
+                      "zmqpubrawblock=tcp://127.0.0.1:", { "Ref": "RawBlockPort" },
+                      "\n",
+                      "zmqpubrawtx=tcp://127.0.0.1:", { "Ref": "RawTxPort" },
                       "\n"
                     ]
                   ]
@@ -223,7 +290,7 @@
                 "cwd": "~/src/bitcoin"
               },
               "1000_configure": {
-                "command": "./configure --disable-wallet --with-zeromq",
+                "command": "./configure --disable-wallet --with-zeromq --without-gui",
                 "cwd": "~/src/bitcoin"
               },
               "1200_make": {
@@ -233,6 +300,10 @@
               "1400_make_install": {
                 "command": "make install",
                 "cwd": "~/src/bitcoin"
+              },
+              "1500_rm_src": {
+                "command": "rm -rf src",
+                "cwd": "~"
               },
               "1600_enable_bitcoind": {
                 "command": "systemctl enable bitcoind"

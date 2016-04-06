@@ -3,20 +3,31 @@
 set -e
 set -x
 
-STACK_NAME="btc-0mq-2016-04-01-v-04"
+NODE_TYPE="0mq-"
+#NODE_TYPE=""
+
+TIMESTAMP=`date +%s`
+DATE=`date +%Y-%m-%d`
+STACK_NAME=btc-${NODE_TYPE}${DATE}-${TIMESTAMP}
+echo ${STACK_NAME}
+TEMPLATE=${NODE_TYPE}node.json
+echo ${TEMPLATE}
+
 VPC="vpc-599c723d"
 SUBNET="subnet-09ee1e6d"
 RPC_PASSWORD="ajfkldfdasf"
 KEY_NAME="bitcoin-nodes"
 INSTANCE_TYPE="m3.medium"
-SNAPSHOT="snap-623b3b32"
+SNAPSHOT="snap-73cde52f"
 
-# TEMPLATE=node.json
-TEMPLATE=0mq-node.json
+# DO_NOTHING | ROLLBACK | DELETE
+ON_FAILURE=DO_NOTHING
 
 aws cloudformation create-stack \
+  --capabilities CAPABILITY_IAM \
   --stack-name ${STACK_NAME} \
   --template-body file://./${TEMPLATE} \
+  --on-failure ${ON_FAILURE} \
   --parameters ParameterKey=VPC,ParameterValue=${VPC} \
                ParameterKey=Subnet,ParameterValue=${SUBNET} \
                ParameterKey=BitcoinRpcPassword,ParameterValue=${RPC_PASSWORD} \
