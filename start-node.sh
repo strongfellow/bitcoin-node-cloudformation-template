@@ -3,8 +3,10 @@
 set -e
 set -x
 
-NODE_TYPE="0mq-"
+#NODE_TYPE="0mq-"
 #NODE_TYPE=""
+#NODE_TYPE="baked-"
+NODE_TYPE=""
 
 TIMESTAMP=`date +%s`
 DATE=`date +%Y-%m-%d`
@@ -17,6 +19,7 @@ VPC="vpc-599c723d"
 SUBNET="subnet-09ee1e6d"
 RPC_PASSWORD="ajfkldfdasf"
 KEY_NAME="bitcoin-nodes"
+#INSTANCE_TYPE="c4.2xlarge"
 INSTANCE_TYPE="m3.medium"
 SNAPSHOT="snap-73cde52f"
 
