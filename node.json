@@ -131,15 +131,13 @@
                 "python-zmq": []
               }
             },
-            "groups": {
-            },
+            "groups": {},
             "users": {
               "bitcoin": {
                 "homeDir": "/data/bitcoin"
               }
             },
-            "sources": {
-            },
+            "sources": {},
             "files": {
               "/etc/systemd/system/bitcoind.service": {
                 "content": {
@@ -174,8 +172,7 @@
                 "command": "apt-get update"
               }
             },
-            "services": {
-            }
+            "services": {}
           },
           "config2": {
             "packages": {
@@ -221,8 +218,7 @@
                 "command": "systemctl start bitcoind"
               }
             },
-            "services": {
-            }
+            "services": {}
           }
         }
       },
