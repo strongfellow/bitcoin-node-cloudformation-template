@@ -269,9 +269,9 @@
                       "\n",
                       "zmqpubhashblock=tcp://127.0.0.1:", { "Ref": "HashBlockPort" },
                       "\n",
-                      "zmqpubrawblock=tcp://127.0.0.1:", { "Ref": "RawBlockPort" },
-                      "\n",
                       "zmqpubrawtx=tcp://127.0.0.1:", { "Ref": "RawTxPort" },
+                      "\n",
+                      "zmqpubrawblock=tcp://127.0.0.1:", { "Ref": "RawBlockPort" },
                       "\n"
                     ]
                   ]
