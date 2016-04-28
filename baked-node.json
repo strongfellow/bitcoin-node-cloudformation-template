@@ -127,7 +127,7 @@
     },
     "RegionMap": {
       "us-west-2": {
-        "HVM64": "ami-a95baec9"
+        "HVM64": "ami-ef64908f"
       }
     }
   },
@@ -156,7 +156,11 @@
           "config2": {
             "packages": {},
             "groups": {},
-            "users": {},
+            "users": {
+			  "bitcoin": {
+			    "homeDir": "/data/bitcoin"
+			  }
+			},
             "sources": {},
             "files": {
               "/data/bitcoin/.bitcoin/bitcoin.conf": {
