@@ -5,6 +5,11 @@
     "KeyName": {
       "Type": "AWS::EC2::KeyPair::KeyName"
     },
+    "BitcoinTag": {
+      "Type": "String",
+      "Default": "tags/v0.12.1",
+      "Description": "what tag or branch to build"
+	},
     "InstanceType": {
       "Description": "Bitcoin Node Instance Type",
       "Type": "String",
@@ -96,7 +101,7 @@
                 "cwd": "~/src"
               },
               "0600_git_checkout": {
-                "command": "git checkout tags/v0.12.0 -b v0.12.0",
+                "command": { "Fn::Join": ["", [ "git checkout ", { "Ref": "BitcoinTag" }, " -b build"]]},
                 "cwd": "~/src/bitcoin"
               },
               "0800_autogen": {
