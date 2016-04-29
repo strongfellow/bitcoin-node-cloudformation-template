@@ -55,6 +55,10 @@
         "m3.large",
         "m3.xlarge",
         "m3.2xlarge",
+		"m4.large",
+		"m4.xlarge",
+		"m4.2xlarge",
+		"m4.10xlarge",
         "c4.large",
         "c4.xlarge",
         "c4.2xlarge",
@@ -123,15 +127,29 @@
       },
       "c4.8xlarge": {
         "Arch": "HVM64"
+      },
+      "m4.large": {
+        "Arch": "HVM64"
+      },
+      "m4.xlarge": {
+        "Arch": "HVM64"
+      },
+      "m4.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "m4.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "m4.10xlarge": {
+        "Arch": "HVM64"
       }
     },
     "RegionMap": {
       "us-west-2": {
-        "HVM64": "ami-ef64908f"
+        "HVM64": "ami-0948b869"
       }
     }
   },
-
   "Resources": {
     "BitcoinNode": {
       "Type": "AWS::EC2::Instance",
@@ -193,12 +211,42 @@
                 "mode": "000600",
                 "owner": "bitcoin",
                 "group": "bitcoin"
+              },
+			  "/etc/systemd/system/bitcoind.service": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "[Unit]",
+                      "Description=Bitcoin daemon service",
+                      "After=network.target",
+                      "",
+                      "[Service]",
+                      "Type=simple",
+                      "User=bitcoin",
+                      "ExecStart=/usr/local/bin/bitcoind",
+                      "",
+                      "[Install]",
+                      "WantedBy=multi-user.target",
+                      ""
+                    ]
+                  ]
+                },
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
               }
+
             },
             "commands": {
               "000_chown": {
                 "command": "chown -R bitcoin:bitcoin /data/bitcoin"
               },
+			  
+              "200_systemctl_enable_bitcoin": {
+                "command": "systemctl enable bitcoind"
+              },
+			  
               "400_systemctl_start_bitcoin": {
                 "command": "systemctl start bitcoind"
               }
@@ -270,7 +318,7 @@
       },
       "CreationPolicy": {
         "ResourceSignal": {
-          "Timeout": "PT5M"
+          "Timeout": "PT7M"
         }
       }
     },
@@ -278,13 +326,8 @@
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "VpcId": { "Ref": "VPC" },
-        "GroupDescription": "Enable SSH access via port 22",
+        "GroupDescription": { "Fn::Join": [" ", ["Enable bitcoin access to port", { "Ref": "BitcoinPort" }]]},
         "SecurityGroupIngress": [ {
-          "IpProtocol": "tcp",
-          "FromPort": "22",
-          "ToPort": "22",
-          "CidrIp": "0.0.0.0/0"
-        }, {
           "IpProtocol": "tcp",
           "FromPort": { "Ref": "BitcoinPort" },
           "ToPort": { "Ref": "BitcoinPort" },
