@@ -14,6 +14,8 @@ echo ${TEMPLATE}
 
 VPC="vpc-599c723d"
 SUBNET="subnet-09ee1e6d"
+SNAPSHOT="snap-2deeecd7"
+
 RPC_PASSWORD="ajfkldfdasf"
 KEY_NAME="thinkpad"
 INSTANCE_TYPE="m4.xlarge"
@@ -22,6 +24,7 @@ INSTANCE_TYPE="m4.xlarge"
 ON_FAILURE=DO_NOTHING
 
 aws cloudformation create-stack \
+  --capabilities CAPABILITY_IAM \
   --stack-name ${STACK_NAME} \
   --template-body file://./${TEMPLATE} \
   --on-failure ${ON_FAILURE} \
@@ -29,4 +32,5 @@ aws cloudformation create-stack \
                ParameterKey=Subnet,ParameterValue=${SUBNET} \
                ParameterKey=KeyName,ParameterValue=${KEY_NAME} \
                ParameterKey=InstanceType,ParameterValue=${INSTANCE_TYPE} \
-               ParameterKey=BitcoinRpcPassword,ParameterValue=${RPC_PASSWORD}
+               ParameterKey=BitcoinRpcPassword,ParameterValue=${RPC_PASSWORD} \
+               ParameterKey=Snapshot,ParameterValue=${SNAPSHOT}
