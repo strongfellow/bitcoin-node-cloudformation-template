@@ -2,6 +2,15 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "A bitcoin node",
   "Parameters": {
+    "Stage": {
+      "Type": "String",
+      "Default": "prod",
+      "AllowedValues": [ "dev", "test", "staging", "prod" ]
+    },
+    "HostNickName": {
+      "Type": "String",
+      "Description": "a one-word nickname for this node"
+    },
     "BitcoinNetwork": {
       "Type": "String",
       "Default": "main",
@@ -198,7 +207,9 @@
 		    ":",
 		    { "Ref": "AWS::AccountId" },
 		    ":stream/transactions-",
-		    { "Ref": "BitcoinNetwork" }
+		    { "Ref": "AWS::Region" },
+		    "-",
+		    { "Ref": "Stage" }
 		  ]]
 		}
 	      }
@@ -318,6 +329,11 @@
         }
       },
       "Properties": {
+	"Tags": [
+	  { "Key": "Name", "Value": { "Ref": "HostNickName" } },
+	  { "Key": "Stage", "Value": { "Ref": "Stage" } },
+	  { "Key": "Network", "Value": { "Ref": "BitcoinNetwork" } }
+	],
 	"IamInstanceProfile": { "Ref": "InstanceProfile" },
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Ref": "KeyName" },
