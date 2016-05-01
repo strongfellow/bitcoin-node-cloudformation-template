@@ -13,48 +13,24 @@
     "InstanceType": {
       "Description": "Bitcoin Node Instance Type",
       "Type": "String",
-      "Default": "c4.large",
-      "AllowedValues": [
-        "c4.large",
-        "c4.xlarge",
-        "c4.2xlarge",
-        "c4.4xlarge",
-        "c4.8xlarge",
-        "m4.large",
-        "m4.xlarge",
-        "m4.2xlarge",
-        "m4.4xlarge",
-        "m4.10xlarge"
-      ]
+      "Default": "m4.2xlarge"
     },
     "Subnet": {
       "Type": "AWS::EC2::Subnet::Id"
     },
     "VPC": {
       "Type": "AWS::EC2::VPC::Id"
+    },
+    "ImageName": {
+      "Type": "String",
+      "Description": "the name of the ami you want to use",
+      "Default": "ubuntu15dot04"
     }
   },
   "Mappings": {
-    "InstanceTypeMap": {
-      "c4.large": {
-        "Arch": "HVM64"
-      },
-      "c4.xlarge": {
-        "Arch": "HVM64"
-      },
-      "c4.2xlarge": {
-        "Arch": "HVM64"
-      },
-      "c4.4xlarge": {
-        "Arch": "HVM64"
-      },
-      "c4.8xlarge": {
-        "Arch": "HVM64"
-      }
-    },
     "RegionMap": {
       "us-west-2": {
-        "HVM64": "ami-2f06e04f"
+        "ubuntu15dot04": "ami-2f06e04f"
       }
     }
   },
@@ -65,9 +41,9 @@
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "configSets": {
-            "bitcoin": ["config1"]
+            "bitcoin": ["install-bitcoind"]
           },
-          "config1": {
+          "install-bitcoind": {
             "packages": {
               "apt": {
                 "build-essential": [],
@@ -132,8 +108,7 @@
       "Properties": {
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Ref": "KeyName" },
-        "ImageId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" },
-                          { "Fn::FindInMap": [ "InstanceTypeMap", { "Ref": "InstanceType" }, "Arch" ] } ] },
+        "ImageId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" }, { "Ref": "ImageName" } ] },
         "NetworkInterfaces": [{
           "AssociatePublicIpAddress": "true",
           "DeviceIndex": "0",

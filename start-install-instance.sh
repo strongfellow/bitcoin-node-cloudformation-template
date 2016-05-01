@@ -8,9 +8,7 @@ NODE_TYPE="bitcoin-install"
 TIMESTAMP=`date +%s`
 DATE=`date +%Y-%m-%d`
 STACK_NAME=btc-${NODE_TYPE}-${DATE}-${TIMESTAMP}
-echo ${STACK_NAME}
 TEMPLATE=${NODE_TYPE}.json
-echo ${TEMPLATE}
 
 VPC="vpc-599c723d"
 SUBNET="subnet-09ee1e6d"
