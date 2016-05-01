@@ -18,7 +18,7 @@ SNAPSHOT="snap-2deeecd7"
 
 RPC_PASSWORD="ajfkldfdasf"
 KEY_NAME="thinkpad"
-INSTANCE_TYPE="t2.small"
+INSTANCE_TYPE="m4.large"
 
 # DO_NOTHING | ROLLBACK | DELETE
 ON_FAILURE=DO_NOTHING
@@ -35,5 +35,6 @@ aws cloudformation create-stack \
                ParameterKey=BitcoinRpcPassword,ParameterValue=${RPC_PASSWORD} \
                ParameterKey=Snapshot,ParameterValue=${SNAPSHOT} \
                ParameterKey=Stage,ParameterValue=prod \
-               ParameterKey=HostNickName,ParameterValue="wonderdog-t2-small"
+               ParameterKey=Mode,ParameterValue=Listener \
+               ParameterKey=HostNickName,ParameterValue="testing-new-configsets-install-and-start-listener"
 

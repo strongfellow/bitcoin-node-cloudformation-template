@@ -7,6 +7,16 @@
       "Default": "prod",
       "AllowedValues": [ "dev", "test", "staging", "prod" ]
     },
+    "Mode": {
+      "Type": "String",
+      "Default": "Listener",
+      "AllowedValues": [ "Listener", "EdgeNode" ]
+    },
+    "BitcoinVersion": {
+      "Type": "String",
+      "Default": "v0dot12dot1",
+      "AllowedValues": [ "v0dot12dot1" ]
+    },
     "HostNickName": {
       "Type": "String",
       "Description": "a one-word nickname for this node"
@@ -69,11 +79,11 @@
         "m3.large",
         "m3.xlarge",
         "m3.2xlarge",
-                "m4.large",
-                "m4.xlarge",
-                "m4.2xlarge",
-                "m4.4xlarge",
-                "m4.10xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "m4.4xlarge",
+        "m4.10xlarge",
         "c4.large",
         "c4.xlarge",
         "c4.2xlarge",
@@ -106,62 +116,9 @@
     }
   },
   "Mappings": {
-    "InstanceTypeMap": {
-      "t2.micro": {
-        "Arch": "HVM64"
-      },
-      "t2.small": {
-        "Arch": "HVM64"
-      },
-      "t2.medium": {
-        "Arch": "HVM64"
-      },
-      "m3.medium": {
-        "Arch": "HVM64"
-      },
-      "m3.large": {
-        "Arch": "HVM64"
-      },
-      "m3.xlarge": {
-        "Arch": "HVM64"
-      },
-      "m3.2xlarge": {
-        "Arch": "HVM64"
-      },
-      "c4.large": {
-        "Arch": "HVM64"
-      },
-      "c4.xlarge": {
-        "Arch": "HVM64"
-      },
-      "c4.2xlarge": {
-        "Arch": "HVM64"
-      },
-      "c4.4xlarge": {
-        "Arch": "HVM64"
-      },
-      "c4.8xlarge": {
-        "Arch": "HVM64"
-      },
-      "m4.large": {
-        "Arch": "HVM64"
-      },
-      "m4.xlarge": {
-        "Arch": "HVM64"
-      },
-      "m4.2xlarge": {
-        "Arch": "HVM64"
-      },
-      "m4.4xlarge": {
-        "Arch": "HVM64"
-      },
-      "m4.10xlarge": {
-        "Arch": "HVM64"
-      }
-    },
     "RegionMap": {
       "us-west-2": {
-        "HVM64": "ami-0948b869"
+        "v0dot12dot1": "ami-0948b869"
       }
     }
   },
@@ -229,9 +186,10 @@
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "configSets": {
-            "bitcoin": ["config1", "config2"]
+            "EdgeNode": [ "InstallEmacs", "RunBitcoind" ],
+	    "Listener": [ "InstallEmacs", "RunBitcoind", "InstallListeners", "RunListeners" ]
           },
-          "config1": {
+          "InstallEmacs": {
             "packages": {
               "apt": {
                 "emacs": []
@@ -244,14 +202,14 @@
             "commands": {},
             "services": {}
           },
-          "config2": {
+          "RunBitcoind": {
             "packages": {},
             "groups": {},
             "users": {
-			  "bitcoin": {
-			    "homeDir": "/data/bitcoin"
-			  }
-			},
+	      "bitcoin": {
+		"homeDir": "/data/bitcoin"
+	      }
+	    },
             "sources": {},
             "files": {
               "/data/bitcoin/.bitcoin/bitcoin.conf": {
@@ -285,7 +243,7 @@
                 "owner": "bitcoin",
                 "group": "bitcoin"
               },
-			  "/etc/systemd/system/bitcoind.service": {
+	      "/etc/systemd/system/bitcoind.service": {
                 "content": {
                   "Fn::Join": [
                     "\n",
@@ -309,21 +267,138 @@
                 "owner": "root",
                 "group": "root"
               }
-
             },
             "commands": {
               "000_chown": {
                 "command": "chown -R bitcoin:bitcoin /data/bitcoin"
               },
-
               "200_systemctl_enable_bitcoin": {
                 "command": "systemctl enable bitcoind"
               },
-
               "400_systemctl_start_bitcoin": {
                 "command": "systemctl start bitcoind"
               }
             },
+            "services": {}
+          },
+
+
+          "InstallListeners": {
+            "packages": {
+              "apt": {
+                "python-dev": [],
+		"python-pip": []
+              }
+            },
+            "groups": {},
+            "users": {},
+            "sources": {},
+            "files": {},
+            "commands": {
+	      "0000_install_deps": {
+		"command": "pip install boto3 pyzmq msgpack-python"
+	      },
+
+              "0200_mkdir_src": {
+                "command": "mkdir -p src",
+                "cwd": "~"
+              },
+
+	      "0400_git_clone_strongfellow": {
+		"command": "git clone https://github.com/strongfellow/strongfellowbtc.git",
+		"cwd": "~/src"
+	      },
+
+              "0600_git_checkout": {
+                "command": { "Fn::Join": ["", [ "git checkout ", "master", " -b build"]]},
+                "cwd": "~/src/strongfellowbtc"
+              },
+
+              "0800_install_strongfellow": {
+                "command": "python setup.py install",
+                "cwd": "~/src/strongfellowbtc"
+              }
+
+	    },
+            "services": {}
+          },
+
+          "RunListeners": {
+            "packages": {},
+            "groups": {},
+            "users": {},
+            "sources": {},
+            "files": {
+	      "/etc/systemd/system/streamtx.service": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "[Unit]",
+                      "Description=A service that puts transactions to kinesis",
+                      "After=network.target",
+                      "",
+                      "[Service]",
+                      "Type=simple",
+                      "User=ubuntu",
+                      { "Fn::Join": [" ", [
+			"ExecStart=/usr/local/bin/stream-incoming-transactions",
+			"--region", { "Ref": "AWS::Region" },
+			"--env", { "Ref": "Stage"},
+			"--host", { "Ref": "HostNickName" }]]},
+                      "",
+                      "[Install]",
+                      "WantedBy=multi-user.target",
+                      ""
+                    ]
+                  ]
+                },
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              },
+	      "/etc/systemd/system/stashblocks.service": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "[Unit]",
+                      "Description=A service that puts blocks into s3",
+                      "After=network.target",
+                      "",
+                      "[Service]",
+                      "Type=simple",
+                      "User=ubuntu",
+                      { "Fn::Join": [" ", [
+			"ExecStart=/usr/local/bin/stash-incoming-blocks",
+			"--region", { "Ref": "AWS::Region" },
+			"--network", { "Ref": "BitcoinNetwork" }]]},
+                      "",
+                      "[Install]",
+                      "WantedBy=multi-user.target",
+                      ""
+                    ]
+                  ]
+                },
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              }
+	    },
+            "commands": {
+              "0000_systemctl_enable_streamtx": {
+                "command": "systemctl enable streamtx"
+              },
+              "0200_systemctl_start_streamtx": {
+                "command": "systemctl start streamtx"
+              },
+              "0400_systemctl_enable_stashblocks": {
+                "command": "systemctl enable stashblocks"
+              },
+              "0600_systemctl_start_stashblocks": {
+                "command": "systemctl start stashblocks"
+              }
+	    },
             "services": {}
           }
         }
@@ -337,8 +412,7 @@
 	"IamInstanceProfile": { "Ref": "InstanceProfile" },
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Ref": "KeyName" },
-        "ImageId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" },
-                          { "Fn::FindInMap": [ "InstanceTypeMap", { "Ref": "InstanceType" }, "Arch" ] } ] },
+        "ImageId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" }, { "Ref": "BitcoinVersion" } ] },
         "NetworkInterfaces": [{
           "AssociatePublicIpAddress": "true",
           "DeviceIndex": "0",
@@ -382,7 +456,7 @@
           "cfn-init ",
           "  --stack ", { "Ref": "AWS::StackId" },
           "  --resource BitcoinNode ",
-          "  --configsets bitcoin ",
+          "  --configsets ", { "Ref": "Mode" },
           "  --region ", { "Ref": "AWS::Region" },
           "\n",
 
