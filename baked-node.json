@@ -4,17 +4,14 @@
   "Parameters": {
     "Stage": {
       "Type": "String",
-      "Default": "prod",
       "AllowedValues": [ "dev", "test", "staging", "prod" ]
     },
     "Mode": {
       "Type": "String",
-      "Default": "Listener",
-      "AllowedValues": [ "Listener", "EdgeNode" ]
+      "AllowedValues": [ "AWSListener", "EdgeNode", "Webapp" ]
     },
     "BitcoinVersion": {
       "Type": "String",
-      "Default": "v0dot12dot1",
       "AllowedValues": [ "v0dot12dot1" ]
     },
     "HostNickName": {
@@ -186,9 +183,21 @@
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "configSets": {
-            "EdgeNode": [ "InstallEmacs", "RunBitcoind" ],
-	    "Listener": [ "InstallEmacs", "RunBitcoind", "InstallListeners", "RunListeners" ]
+            "EdgeNode": [
+	      "InstallEmacs", "RunBitcoind"
+	    ],
+	    "AWSListener": [
+	      "InstallEmacs", "RunBitcoind", "InstallStrongfellowBTC", "RunListeners"
+	    ],
+	    "Webapp": [
+	      "InstallEmacs",
+	      "RunBitcoind",
+	      "InstallStrongfellowBTC",
+	      "InstallWebapp",
+	      "RunWebapp"
+	    ]
           },
+
           "InstallEmacs": {
             "packages": {
               "apt": {
@@ -202,6 +211,7 @@
             "commands": {},
             "services": {}
           },
+
           "RunBitcoind": {
             "packages": {},
             "groups": {},
@@ -282,8 +292,7 @@
             "services": {}
           },
 
-
-          "InstallListeners": {
+          "InstallStrongfellowBTC": {
             "packages": {
               "apt": {
                 "python-dev": [],
@@ -300,25 +309,23 @@
 	      },
 
               "0200_mkdir_src": {
-                "command": "mkdir -p src",
-                "cwd": "~"
+                "command": "mkdir -p /home/ubuntu/src"
               },
 
 	      "0400_git_clone_strongfellow": {
 		"command": "git clone https://github.com/strongfellow/strongfellowbtc.git",
-		"cwd": "~/src"
+		"cwd": "/home/ubuntu/src"
 	      },
 
               "0600_git_checkout": {
                 "command": { "Fn::Join": ["", [ "git checkout ", "master", " -b build"]]},
-                "cwd": "~/src/strongfellowbtc"
+                "cwd": "/home/ubuntu/src/strongfellowbtc"
               },
 
               "0800_install_strongfellow": {
                 "command": "python setup.py install",
-                "cwd": "~/src/strongfellowbtc"
+                "cwd": "/home/ubuntu/src/strongfellowbtc"
               }
-
 	    },
             "services": {}
           },
@@ -397,6 +404,119 @@
               },
               "0600_systemctl_start_stashblocks": {
                 "command": "systemctl start stashblocks"
+              }
+	    },
+            "services": {}
+          },
+
+          "InstallWebapp": {
+            "packages": {
+	      "apt": {
+		"openjdk-8-jdk": [],
+		"maven": []
+	      }
+	    },
+            "groups": {},
+            "users": {},
+            "sources": {},
+            "files": {},
+            "commands": {
+
+              "0200_mkdir_src": {
+                "command": "mkdir -p /home/ubuntu/src"
+              },
+
+	      "0400_git_clone_transaction_streamer": {
+		"command": "git clone https://github.com/strongfellow/transaction-streamer.git",
+		"cwd": "/home/ubuntu/src"
+	      },
+
+              "0600_git_checkout": {
+                "command": { "Fn::Join": ["", [ "git checkout ", "master", " -b build"]]},
+                "cwd": "/home/ubuntu/src/transaction-streamer"
+              },
+
+              "0800_mvn_package": {
+                "command": "mvn clean package",
+                "cwd": "/home/ubuntu/src/transaction-streamer"
+              }
+
+	    },
+            "services": {}
+          },
+
+          "RunWebapp": {
+            "packages": {},
+            "groups": {},
+            "users": {},
+            "sources": {},
+            "files": {
+	      "/etc/systemd/system/webapp.service": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "[Unit]",
+                      "Description=Strongfellow web application",
+                      "After=network.target",
+                      "",
+                      "[Service]",
+                      "Type=simple",
+                      "User=ubuntu",
+                      { "Fn::Join": [" ", [
+			"ExecStart=/usr/bin/java",
+			"-jar",
+			"/home/ubuntu/src/transaction-streamer/target/transactions-stomp-websocket-0.1.0.jar"
+			]]
+		      },
+                      "",
+                      "[Install]",
+                      "WantedBy=multi-user.target",
+                      ""
+                    ]
+                  ]
+                },
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              },
+	      "/etc/systemd/system/posttx.service": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "[Unit]",
+                      "Description=A service posts blocks to the local webapp",
+                      "After=network.target",
+                      "",
+                      "[Service]",
+                      "Type=simple",
+                      "User=ubuntu",
+                      "ExecStart=/usr/local/bin/post-incoming-transactions",
+		      "",
+                      "[Install]",
+                      "WantedBy=multi-user.target",
+                      ""
+                    ]
+                  ]
+                },
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              }
+	    },
+            "commands": {
+              "0000_systemctl_enable_webapp": {
+                "command": "systemctl enable webapp"
+              },
+              "0200_systemctl_start_webapp": {
+                "command": "systemctl start webapp"
+              },
+              "0400_systemctl_enable_posttx": {
+                "command": "systemctl enable posttx"
+              },
+              "0600_systemctl_start_posttx": {
+                "command": "systemctl start posttx"
               }
 	    },
             "services": {}
