@@ -10,29 +10,30 @@ def main(args=None):
         args = sys.argv[1:]
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--on-failure',
-                        default='DO_NOTHING',
-                        choices=['DO_NOTHING', 'ROLLBACK', 'DELETE'])
-    parser.add_argument('--vpc', default='vpc-599c723d')
-    parser.add_argument('--subnet', default='subnet-09ee1e6d')
-    parser.add_argument('--key-name', default='thinkpad')
-    parser.add_argument('--instance-type',
-                        default='m4.large')
-    parser.add_argument('--rpc-password',
-                        required=False)
-    parser.add_argument('--snapshot-id',
-                        default='snap-a127e2f3')
-    parser.add_argument('--stage',
-                        default='prod',
-                        choices=['dev', 'test', 'staging', 'prod'])
-    parser.add_argument('--mode',
-                        default='Webapp',
-                        choices=['AWSListener', 'EdgeNode', 'Webapp'])
     parser.add_argument('--nickname', required=True)
+    parser.add_argument('--mode',
+                        required=True,
+                        choices=['AWSListener', 'EdgeNode', 'Webapp'])
+    parser.add_argument('--stage',
+                        required=True,
+                        choices=['dev', 'test', 'staging', 'prod'])
+
+    parser.add_argument('--instance-type', required=True)
     parser.add_argument('--bitcoin-version',
                         default='v0dot12dot1',
                         choices=['v0dot12dot1'])
 
+    parser.add_argument('--on-failure',
+                        default='DO_NOTHING',
+                        choices=['DO_NOTHING', 'ROLLBACK', 'DELETE'])
+    parser.add_argument('--vpc',
+                        default='vpc-599c723d')
+    parser.add_argument('--subnet',
+                        default='subnet-09ee1e6d')
+    parser.add_argument('--snapshot-id',
+                        default='snap-a127e2f3')
+    parser.add_argument('--key-name',
+                        default='thinkpad')
     args = parser.parse_args(args)
 
     stack_name = '{nickname}-{mode}-{stage}'.format(
@@ -40,7 +41,7 @@ def main(args=None):
         mode=args.mode,
         stage=args.stage)
     host_nick_name = stack_name
-    timeout_in_minutes = 10
+    timeout_in_minutes = 15
 
     rpc_password = str(uuid.uuid4())
 
