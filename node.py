@@ -72,6 +72,10 @@ def main(args=None):
                 'ParameterValue': rpc_password
             },
             {
+                'ParameterKey': 'BitcoinVersion',
+                'ParameterValue': args.bitcoin_version
+            },
+            {
                 'ParameterKey': 'Snapshot',
                 'ParameterValue': args.snapshot_id
             },
