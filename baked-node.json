@@ -205,16 +205,7 @@
 	      {
 		"Effect": "Allow",
 		"Action": "ec2:CreateSnapshot",
-		"Resource": {
-		  "Fn::Join": [ "", [
-		    "arn:aws:ec2:",
-		    { "Ref": "AWS::Region" },
-		    ":",
-		    { "Ref": "AWS::AccountId" },
-		    ":volume/",
-		    { "Ref": "Volume" }
-		  ]]
-		}
+		"Resource": "*"
 	      }
 	    ]
           }
