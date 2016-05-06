@@ -31,8 +31,7 @@ def main(args=None):
                         default='vpc-599c723d')
     parser.add_argument('--subnet',
                         default='subnet-09ee1e6d')
-    parser.add_argument('--snapshot-id',
-                        default='snap-a127e2f3')
+    parser.add_argument('--snapshot-id', required=True)
     parser.add_argument('--key-name',
                         default='thinkpad')
     args = parser.parse_args(args)
