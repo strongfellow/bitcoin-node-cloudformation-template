@@ -10,6 +10,7 @@ def main(args=None):
         args = sys.argv[1:]
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--az', default='us-west-2a')
     parser.add_argument('--nickname', required=True)
     parser.add_argument('--mode',
                         required=True,
@@ -36,10 +37,9 @@ def main(args=None):
                         default='thinkpad')
     args = parser.parse_args(args)
 
-    stack_name = '{nickname}-{mode}-{stage}'.format(
+    stack_name = '{nickname}-{mode}'.format(
         nickname=args.nickname,
-        mode=args.mode,
-        stage=args.stage)
+        mode=args.mode)
     host_nick_name = stack_name
     timeout_in_minutes = 15
 
@@ -59,6 +59,10 @@ def main(args=None):
             {
                 'ParameterKey': 'Subnet',
                 'ParameterValue': args.subnet
+            },
+            {
+                'ParameterKey': 'AZ',
+                'ParameterValue': args.az
             },
             {
                 'ParameterKey': 'KeyName',

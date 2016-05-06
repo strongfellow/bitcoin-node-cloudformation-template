@@ -2,6 +2,10 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "A bitcoin node",
   "Parameters": {
+    "AZ": {
+      "Type": "String",
+      "Description": "the availability zone"
+    },
     "Stage": {
       "Type": "String",
       "AllowedValues": [ "dev", "test", "staging", "prod" ]
@@ -120,6 +124,37 @@
     }
   },
   "Resources": {
+    "InitializationWaitConditionHandle": {
+      "Type" : "AWS::CloudFormation::WaitConditionHandle"
+    },
+    "InitializationWaitCondition": {
+      "Type" : "AWS::CloudFormation::WaitCondition",
+      "Properties" : {
+	"Count": "1",
+	"Handle" : { "Ref": "InitializationWaitConditionHandle" },
+	"Timeout" : "600"
+      }
+    },
+    "Volume": {
+      "Type":"AWS::EC2::Volume",
+      "Properties" : {
+	"AvailabilityZone" :  { "Ref": "AZ" },
+	"Size" : { "Ref": "VolumeSize" },
+        "SnapshotId": {
+          "Fn::If": [ "UseSnapshotCondition", { "Ref": "Snapshot" }, { "Ref": "AWS::NoValue" } ]
+        },
+        "VolumeType": "gp2"
+      }
+    },
+    "VolumeAttachment": {
+      "Type":"AWS::EC2::VolumeAttachment",
+      "Properties" : {
+	"Device" : "/dev/xvdi",
+	"InstanceId" : { "Ref": "BitcoinNode" },
+	"VolumeId" : { "Ref": "Volume" }
+      }
+    },
+
     "BitcoinNodeRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -166,6 +201,20 @@
 		    { "Ref": "Stage" }
 		  ]]
 		}
+	      },
+	      {
+		"Effect": "Allow",
+		"Action": "ec2:CreateSnapshot",
+		"Resource": {
+		  "Fn::Join": [ "", [
+		    "arn:aws:ec2:",
+		    { "Ref": "AWS::Region" },
+		    ":",
+		    { "Ref": "AWS::AccountId" },
+		    ":volume/",
+		    { "Ref": "Volume" }
+		  ]]
+		}
 	      }
 	    ]
           }
@@ -184,7 +233,7 @@
         "AWS::CloudFormation::Init": {
           "configSets": {
             "EdgeNode": [
-	      "InstallEmacs", "RunBitcoind"
+	      "InstallEmacs", "RunBitcoind", "BackupBlocks"
 	    ],
 	    "AWSListener": [
 	      "InstallEmacs", "RunBitcoind", "InstallStrongfellowBTC", "RunListeners"
@@ -520,10 +569,78 @@
               }
 	    },
             "services": {}
+          },
+
+          "BackupBlocks": {
+            "packages": {
+	      "apt": {
+		"awscli": [],
+	      }
+	    },
+            "groups": {},
+            "users": {},
+            "sources": {},
+            "files": {
+	      "/usr/local/bin/snapshot": {
+		"content": {
+		  "Fn::Join": [
+		    "\n",
+		    [
+		      "#!/bin/bash",
+		      "set -e",
+		      "set -x",
+		      { "Fn::Join": ["", ["VOLUME=", { "Ref": "Volume" }]]},
+		      "TIMESTAMP=`date +%s`",
+		      { "Fn::Join": [
+			"",
+			[
+			  "DESCRIPTION=block-database-",
+			  { "Ref": "HostNickName" },
+			  "-",
+			  { "Ref": "AWS::Region" },
+			  "-",
+			  { "Ref": "Stage" },
+			  "-${TIMESTAMP}"
+			]
+		      ]},
+		      "BACKUP=backup-$TIMESTAMP",
+		      "A=/data/bitcoin/.bitcoin",
+		      "B=/data/bitcoin/$BACKUP",
+		      "C=/tmp/$BACKUP",
+		      "",
+		      "systemctl stop bitcoind",
+		      "mv $A $B",
+		      "sudo -u bitcoin mkdir -p $A",
+		      "mv $B/blocks $A",
+		      "mv $B/chainstate $A",
+		      "mv $B $C",
+		      "",
+		      "aws ec2 create-snapshot --region us-west-2 --volume-id $VOLUME --description $DESCRIPTION",
+		      "sleep 30",
+		      "",
+		      "mv $C $B",
+		      "mv $A/blocks $B",
+		      "mv $A/chainstate $B",
+		      "rm -rf $A",
+		      "mv $B $A",
+		      "systemctl start bitcoind",
+		      ""
+		    ]
+		  ]
+		},
+		"mode": "000755",
+                "owner": "root",
+                "group": "root"
+
+	      }
+	    },
+            "commands": {},
+            "services": {}
           }
         }
       },
       "Properties": {
+	"AvailabilityZone": { "Ref": "AZ" },
 	"Tags": [
 	  { "Key": "Name", "Value": { "Ref": "HostNickName" } },
 	  { "Key": "Stage", "Value": { "Ref": "Stage" } },
@@ -539,22 +656,24 @@
           "GroupSet": [{ "Ref": "InstanceSecurityGroup" }],
           "SubnetId": { "Ref": "Subnet" }
         }],
-        "BlockDeviceMappings": [{
-          "DeviceName": "/dev/xvdi",
-          "Ebs": {
-            "DeleteOnTermination": true,
-            "SnapshotId": {
-              "Fn::If": [ "UseSnapshotCondition", { "Ref": "Snapshot" }, { "Ref": "AWS::NoValue" } ]
-            },
-            "VolumeSize": { "Ref": "VolumeSize" },
-            "VolumeType": "gp2"
-          }
-        }],
         "UserData": { "Fn::Base64": { "Fn::Join": ["", [
           "#!/bin/bash\n",
           "set -e\n",
           "set -x\n",
           "apt-get update\n",
+
+          "# install cfn tools\n",
+          "apt-get -y install python-setuptools\n",
+          "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+
+          "# Unblock Resources Waiting for the EC2 Instance\n",
+          "cfn-signal ",
+          "  --exit-code $? ",
+          "  --stack ", { "Ref": "AWS::StackName" },
+          "  --resource BitcoinNode ",
+          "  --region ", {"Ref": "AWS::Region" },
+          "\n",
+
           "while [ ! -e /dev/xvdi ]; do echo waiting for /dev/xvdi to attach; sleep 5; done \n",
           {
             "Fn::If": [
@@ -568,9 +687,6 @@
           "echo '/dev/xvdi       /data   ext4    defaults        0       2' >> /etc/fstab\n",
           "mount -a\n",
 
-          "# install cfn tools\n",
-          "apt-get -y install python-setuptools\n",
-          "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
 
           "# Install application\n",
           "cfn-init ",
@@ -580,13 +696,10 @@
           "  --region ", { "Ref": "AWS::Region" },
           "\n",
 
-          "# All is well so signal success\n",
-          "cfn-signal ",
-          "  --exit-code $? ",
-          "  --stack ", { "Ref": "AWS::StackName" },
-          "  --resource BitcoinNode ",
-          "  --region ", {"Ref": "AWS::Region" },
+	  "# Signal Volume Attachment\n",
+          "cfn-signal --exit-code $? '", { "Ref": "InitializationWaitConditionHandle" }, "'",
           "\n"
+
         ]]}}
       },
       "CreationPolicy": {
