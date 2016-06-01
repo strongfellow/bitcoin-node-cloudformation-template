@@ -130,16 +130,16 @@
     "InitializationWaitCondition": {
       "Type" : "AWS::CloudFormation::WaitCondition",
       "Properties" : {
-	"Count": "1",
-	"Handle" : { "Ref": "InitializationWaitConditionHandle" },
-	"Timeout" : "600"
+        "Count": "1",
+        "Handle" : { "Ref": "InitializationWaitConditionHandle" },
+        "Timeout" : "600"
       }
     },
     "Volume": {
       "Type":"AWS::EC2::Volume",
       "Properties" : {
-	"AvailabilityZone" :  { "Ref": "AZ" },
-	"Size" : { "Ref": "VolumeSize" },
+        "AvailabilityZone" :  { "Ref": "AZ" },
+        "Size" : { "Ref": "VolumeSize" },
         "SnapshotId": {
           "Fn::If": [ "UseSnapshotCondition", { "Ref": "Snapshot" }, { "Ref": "AWS::NoValue" } ]
         },
@@ -149,9 +149,9 @@
     "VolumeAttachment": {
       "Type":"AWS::EC2::VolumeAttachment",
       "Properties" : {
-	"Device" : "/dev/xvdi",
-	"InstanceId" : { "Ref": "BitcoinNode" },
-	"VolumeId" : { "Ref": "Volume" }
+        "Device" : "/dev/xvdi",
+        "InstanceId" : { "Ref": "BitcoinNode" },
+        "VolumeId" : { "Ref": "Volume" }
       }
     },
 
@@ -173,43 +173,43 @@
           "PolicyDocument": {
             "Version" : "2012-10-17",
             "Statement": [
-	      {
-		"Effect": "Allow",
-		"Action": [ "S3:GetObject", "S3:PutObject" ],
-		"Resource": {
-		  "Fn::Join": [ "", [
-		    "arn:aws:s3:::blocks-",
-		    { "Ref": "AWS::Region" },
-		    ".strongfellow.com/",
-		    { "Ref": "BitcoinNetwork" },
-		    "/*"
-		  ]]
-		}
+              {
+                "Effect": "Allow",
+                "Action": [ "S3:GetObject", "S3:PutObject" ],
+                "Resource": {
+                  "Fn::Join": [ "", [
+                    "arn:aws:s3:::blocks-",
+                    { "Ref": "AWS::Region" },
+                    ".strongfellow.com/",
+                    { "Ref": "BitcoinNetwork" },
+                    "/*"
+                  ]]
+                }
               },
-	      {
-		"Effect": "Allow",
-		"Action": "kinesis:Put*",
-		"Resource": {
-		  "Fn::Join": [ "", [
-		    "arn:aws:kinesis:",
-		    { "Ref": "AWS::Region" },
-		    ":",
-		    { "Ref": "AWS::AccountId" },
-		    ":stream/transactions-",
-		    { "Ref": "AWS::Region" },
-		    "-",
-		    { "Ref": "Stage" }
-		  ]]
-		}
-	      },
-	      {
-		"Effect": "Allow",
-		"Action": "ec2:CreateSnapshot",
-		"Resource": "*"
-	      }
-	    ]
+              {
+                "Effect": "Allow",
+                "Action": "kinesis:Put*",
+                "Resource": {
+                  "Fn::Join": [ "", [
+                    "arn:aws:kinesis:",
+                    { "Ref": "AWS::Region" },
+                    ":",
+                    { "Ref": "AWS::AccountId" },
+                    ":stream/transactions-",
+                    { "Ref": "AWS::Region" },
+                    "-",
+                    { "Ref": "Stage" }
+                  ]]
+                }
+              },
+              {
+                "Effect": "Allow",
+                "Action": "ec2:CreateSnapshot",
+                "Resource": "*"
+              }
+            ]
           }
-	}]
+        }]
       }
     },
     "InstanceProfile": {
@@ -224,18 +224,25 @@
         "AWS::CloudFormation::Init": {
           "configSets": {
             "EdgeNode": [
-	      "InstallEmacs", "RunBitcoind", "BackupBlocks"
-	    ],
-	    "AWSListener": [
-	      "InstallEmacs", "RunBitcoind", "InstallStrongfellowBTC", "RunListeners"
-	    ],
-	    "Webapp": [
-	      "InstallEmacs",
-	      "RunBitcoind",
-	      "InstallStrongfellowBTC",
-	      "InstallWebapp",
-	      "RunWebapp"
-	    ]
+              "InstallEmacs", "RunBitcoind", "BackupBlocks"
+            ],
+            "AWSListener": [
+              "InstallEmacs", "RunBitcoind", "InstallStrongfellowBTC", "RunListeners"
+            ],
+            "Webapp": [
+              "InstallEmacs",
+              "RunBitcoind",
+              "InstallStrongfellowBTC",
+              "InstallWebapp",
+              "RunWebapp"
+            ],
+            "Explorer": [
+              "InstallEmacs",
+              "RunBitcoind",
+              "InstallStrongfellowBTC",
+              "InstallExplorer",
+              "RunExplorer"
+            ]
           },
 
           "InstallEmacs": {
@@ -256,10 +263,10 @@
             "packages": {},
             "groups": {},
             "users": {
-	      "bitcoin": {
-		"homeDir": "/data/bitcoin"
-	      }
-	    },
+              "bitcoin": {
+                "homeDir": "/data/bitcoin"
+              }
+            },
             "sources": {},
             "files": {
               "/data/bitcoin/.bitcoin/bitcoin.conf": {
@@ -293,7 +300,7 @@
                 "owner": "bitcoin",
                 "group": "bitcoin"
               },
-	      "/etc/systemd/system/bitcoind.service": {
+              "/etc/systemd/system/bitcoind.service": {
                 "content": {
                   "Fn::Join": [
                     "\n",
@@ -336,7 +343,7 @@
             "packages": {
               "apt": {
                 "python-dev": [],
-		"python-pip": []
+                "python-pip": []
               }
             },
             "groups": {},
@@ -344,18 +351,18 @@
             "sources": {},
             "files": {},
             "commands": {
-	      "0000_install_deps": {
-		"command": "pip install boto3 pyzmq msgpack-python"
-	      },
+              "0000_install_deps": {
+                "command": "pip install boto3 pyzmq msgpack-python"
+              },
 
               "0200_mkdir_src": {
                 "command": "mkdir -p /home/ubuntu/src"
               },
 
-	      "0400_git_clone_strongfellow": {
-		"command": "git clone https://github.com/strongfellow/strongfellowbtc.git",
-		"cwd": "/home/ubuntu/src"
-	      },
+              "0400_git_clone_strongfellow": {
+                "command": "git clone https://github.com/strongfellow/strongfellowbtc.git",
+                "cwd": "/home/ubuntu/src"
+              },
 
               "0600_git_checkout": {
                 "command": { "Fn::Join": ["", [ "git checkout ", "master", " -b build"]]},
@@ -366,7 +373,7 @@
                 "command": "python setup.py install",
                 "cwd": "/home/ubuntu/src/strongfellowbtc"
               }
-	    },
+            },
             "services": {}
           },
 
@@ -376,7 +383,7 @@
             "users": {},
             "sources": {},
             "files": {
-	      "/etc/systemd/system/streamtx.service": {
+              "/etc/systemd/system/streamtx.service": {
                 "content": {
                   "Fn::Join": [
                     "\n",
@@ -389,10 +396,10 @@
                       "Type=simple",
                       "User=ubuntu",
                       { "Fn::Join": [" ", [
-			"ExecStart=/usr/local/bin/stream-incoming-transactions",
-			"--region", { "Ref": "AWS::Region" },
-			"--env", { "Ref": "Stage"},
-			"--host", { "Ref": "HostNickName" }]]},
+                        "ExecStart=/usr/local/bin/stream-incoming-transactions",
+                        "--region", { "Ref": "AWS::Region" },
+                        "--env", { "Ref": "Stage"},
+                        "--host", { "Ref": "HostNickName" }]]},
                       "",
                       "[Install]",
                       "WantedBy=multi-user.target",
@@ -404,7 +411,7 @@
                 "owner": "root",
                 "group": "root"
               },
-	      "/etc/systemd/system/stashblocks.service": {
+              "/etc/systemd/system/stashblocks.service": {
                 "content": {
                   "Fn::Join": [
                     "\n",
@@ -417,9 +424,9 @@
                       "Type=simple",
                       "User=ubuntu",
                       { "Fn::Join": [" ", [
-			"ExecStart=/usr/local/bin/stash-incoming-blocks",
-			"--region", { "Ref": "AWS::Region" },
-			"--network", { "Ref": "BitcoinNetwork" }]]},
+                        "ExecStart=/usr/local/bin/stash-incoming-blocks",
+                        "--region", { "Ref": "AWS::Region" },
+                        "--network", { "Ref": "BitcoinNetwork" }]]},
                       "",
                       "[Install]",
                       "WantedBy=multi-user.target",
@@ -431,7 +438,7 @@
                 "owner": "root",
                 "group": "root"
               }
-	    },
+            },
             "commands": {
               "0000_systemctl_enable_streamtx": {
                 "command": "systemctl enable streamtx"
@@ -445,17 +452,17 @@
               "0600_systemctl_start_stashblocks": {
                 "command": "systemctl start stashblocks"
               }
-	    },
+            },
             "services": {}
           },
 
           "InstallWebapp": {
             "packages": {
-	      "apt": {
-		"openjdk-8-jdk": [],
-		"maven": []
-	      }
-	    },
+              "apt": {
+                "openjdk-8-jdk": [],
+                "maven": []
+              }
+            },
             "groups": {},
             "users": {},
             "sources": {},
@@ -466,10 +473,10 @@
                 "command": "mkdir -p /home/ubuntu/src"
               },
 
-	      "0400_git_clone_transaction_streamer": {
-		"command": "git clone https://github.com/strongfellow/transaction-streamer.git",
-		"cwd": "/home/ubuntu/src"
-	      },
+              "0400_git_clone_transaction_streamer": {
+                "command": "git clone https://github.com/strongfellow/transaction-streamer.git",
+                "cwd": "/home/ubuntu/src"
+              },
 
               "0600_git_checkout": {
                 "command": { "Fn::Join": ["", [ "git checkout ", "master", " -b build"]]},
@@ -481,7 +488,7 @@
                 "cwd": "/home/ubuntu/src/transaction-streamer"
               }
 
-	    },
+            },
             "services": {}
           },
 
@@ -491,7 +498,7 @@
             "users": {},
             "sources": {},
             "files": {
-	      "/etc/systemd/system/webapp.service": {
+              "/etc/systemd/system/webapp.service": {
                 "content": {
                   "Fn::Join": [
                     "\n",
@@ -504,11 +511,11 @@
                       "Type=simple",
                       "User=ubuntu",
                       { "Fn::Join": [" ", [
-			"ExecStart=/usr/bin/java",
-			"-jar",
-			"/home/ubuntu/src/transaction-streamer/target/transactions-stomp-websocket-0.1.0.jar"
-			]]
-		      },
+                        "ExecStart=/usr/bin/java",
+                        "-jar",
+                        "/home/ubuntu/src/transaction-streamer/target/transactions-stomp-websocket-0.1.0.jar"
+                        ]]
+                      },
                       "",
                       "[Install]",
                       "WantedBy=multi-user.target",
@@ -520,20 +527,20 @@
                 "owner": "root",
                 "group": "root"
               },
-	      "/etc/systemd/system/posttx.service": {
+              "/etc/systemd/system/posttx.service": {
                 "content": {
                   "Fn::Join": [
                     "\n",
                     [
                       "[Unit]",
-                      "Description=A service posts blocks to the local webapp",
+                      "Description=A service posts transactions local webapp",
                       "After=network.target",
                       "",
                       "[Service]",
                       "Type=simple",
                       "User=ubuntu",
                       "ExecStart=/usr/local/bin/post-incoming-transactions",
-		      "",
+                      "",
                       "[Install]",
                       "WantedBy=multi-user.target",
                       ""
@@ -544,7 +551,7 @@
                 "owner": "root",
                 "group": "root"
               }
-	    },
+            },
             "commands": {
               "0000_systemctl_enable_webapp": {
                 "command": "systemctl enable webapp"
@@ -558,95 +565,95 @@
               "0600_systemctl_start_posttx": {
                 "command": "systemctl start posttx"
               }
-	    },
+            },
             "services": {}
           },
 
           "BackupBlocks": {
             "packages": {
-	      "apt": {
-		"awscli": []
-	      }
-	    },
+              "apt": {
+                "awscli": []
+              }
+            },
             "groups": {},
             "users": {},
             "sources": {},
             "files": {
-	      "/etc/cron.hourly/snapshot": {
-		"content": { "Fn::Join": ["\n", [
-		  "#!/bin/bash",
-		  "/usr/local/bin/snapshot",
-		  ""
-		]]},
-		"mode": "000755",
-		"owner": "root",
-		"group": "root"
-	      },
-	      "/usr/local/bin/snapshot": {
-		"content": {
-		  "Fn::Join": [
-		    "\n",
-		    [
-		      "#!/bin/bash",
-		      "set -e",
-		      "set -x",
-		      { "Fn::Join": ["", ["VOLUME=", { "Ref": "Volume" }]]},
-		      "TIMESTAMP=`date +%s`",
-		      { "Fn::Join": [
-			"",
-			[
-			  "DESCRIPTION=block-database-",
-			  { "Ref": "HostNickName" },
-			  "-",
-			  { "Ref": "AWS::Region" },
-			  "-",
-			  { "Ref": "Stage" },
-			  "-`date +%Y-%m-%d-%H-%M-%S`"
-			]
-		      ]},
-		      "BACKUP=backup-$TIMESTAMP",
-		      "A=/data/bitcoin/.bitcoin",
-		      "B=/data/bitcoin/$BACKUP",
-		      "C=/tmp/$BACKUP",
-		      "",
-		      "systemctl stop bitcoind",
-		      "mv $A $B",
-		      "sudo -u bitcoin mkdir -p $A",
-		      "mv $B/blocks $A",
-		      "mv $B/chainstate $A",
-		      "mv $B $C",
-		      "",
-		      "aws ec2 create-snapshot --region us-west-2 --volume-id $VOLUME --description $DESCRIPTION",
-		      "",
-		      "mv $C $B",
-		      "mv $A/blocks $B",
-		      "mv $A/chainstate $B",
-		      "rm -rf $A",
-		      "mv $B $A",
-		      "systemctl start bitcoind",
-		      ""
-		    ]
-		  ]
-		},
-		"mode": "000755",
+              "/etc/cron.hourly/snapshot": {
+                "content": { "Fn::Join": ["\n", [
+                  "#!/bin/bash",
+                  "/usr/local/bin/snapshot",
+                  ""
+                ]]},
+                "mode": "000755",
+                "owner": "root",
+                "group": "root"
+              },
+              "/usr/local/bin/snapshot": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "#!/bin/bash",
+                      "set -e",
+                      "set -x",
+                      { "Fn::Join": ["", ["VOLUME=", { "Ref": "Volume" }]]},
+                      "TIMESTAMP=`date +%s`",
+                      { "Fn::Join": [
+                        "",
+                        [
+                          "DESCRIPTION=block-database-",
+                          { "Ref": "HostNickName" },
+                          "-",
+                          { "Ref": "AWS::Region" },
+                          "-",
+                          { "Ref": "Stage" },
+                          "-`date +%Y-%m-%d-%H-%M-%S`"
+                        ]
+                      ]},
+                      "BACKUP=backup-$TIMESTAMP",
+                      "A=/data/bitcoin/.bitcoin",
+                      "B=/data/bitcoin/$BACKUP",
+                      "C=/tmp/$BACKUP",
+                      "",
+                      "systemctl stop bitcoind",
+                      "mv $A $B",
+                      "sudo -u bitcoin mkdir -p $A",
+                      "mv $B/blocks $A",
+                      "mv $B/chainstate $A",
+                      "mv $B $C",
+                      "",
+                      "aws ec2 create-snapshot --region us-west-2 --volume-id $VOLUME --description $DESCRIPTION",
+                      "",
+                      "mv $C $B",
+                      "mv $A/blocks $B",
+                      "mv $A/chainstate $B",
+                      "rm -rf $A",
+                      "mv $B $A",
+                      "systemctl start bitcoind",
+                      ""
+                    ]
+                  ]
+                },
+                "mode": "000755",
                 "owner": "root",
                 "group": "root"
 
-	      }
-	    },
+              }
+            },
             "commands": {},
             "services": {}
           }
         }
       },
       "Properties": {
-	"AvailabilityZone": { "Ref": "AZ" },
-	"Tags": [
-	  { "Key": "Name", "Value": { "Ref": "HostNickName" } },
-	  { "Key": "Stage", "Value": { "Ref": "Stage" } },
-	  { "Key": "Network", "Value": { "Ref": "BitcoinNetwork" } }
-	],
-	"IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "AvailabilityZone": { "Ref": "AZ" },
+        "Tags": [
+          { "Key": "Name", "Value": { "Ref": "HostNickName" } },
+          { "Key": "Stage", "Value": { "Ref": "Stage" } },
+          { "Key": "Network", "Value": { "Ref": "BitcoinNetwork" } }
+        ],
+        "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Ref": "KeyName" },
         "ImageId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" }, { "Ref": "BitcoinVersion" } ] },
@@ -696,7 +703,7 @@
           "  --region ", { "Ref": "AWS::Region" },
           "\n",
 
-	  "# Signal Volume Attachment\n",
+          "# Signal Volume Attachment\n",
           "cfn-signal --exit-code $? '", { "Ref": "InitializationWaitConditionHandle" }, "'",
           "\n"
 
