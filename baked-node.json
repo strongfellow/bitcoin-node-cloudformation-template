@@ -132,7 +132,7 @@
       "Properties" : {
         "Count": "1",
         "Handle" : { "Ref": "InitializationWaitConditionHandle" },
-        "Timeout" : "600"
+        "Timeout" : "900"
       }
     },
     "Volume": {
@@ -557,6 +557,7 @@
           "InstallExplorer": {
             "packages": {
               "apt": {
+		"sqlite3": []
                 "openjdk-8-jdk": [],
                 "maven": []
               }
@@ -633,8 +634,11 @@
 	      "0010_chown": {
 		"command": "chown ubuntu:ubuntu /data/explorer"
 	      },
-	      "0010_chmod": {
+	      "0020_chmod": {
 		"command": "chmod a+rx /data/bitcoin/.bitcoin/blocks"
+	      },
+	      "0030_chmod": {
+		"command": "chmod a+r /data/bitcoin/.bitcoin/blocks/*"
 	      },
               "0100_systemctl_enable_explorer": {
                 "command": "systemctl enable explorer"
