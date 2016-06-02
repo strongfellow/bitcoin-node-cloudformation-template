@@ -634,13 +634,13 @@
 		"command": "chown ubuntu:ubuntu /data/explorer"
 	      },
 	      "0010_chmod": {
-		"command": "chmod a+r /data/bitcoin/.bitcoin/blocks"
+		"command": "chmod a+rx /data/bitcoin/.bitcoin/blocks"
 	      },
-              "0100_systemctl_enable_webapp": {
-                "command": "systemctl enable webapp"
+              "0100_systemctl_enable_explorer": {
+                "command": "systemctl enable explorer"
               },
               "0200_systemctl_start_webapp": {
-                "command": "systemctl start webapp"
+                "command": "systemctl start explorer"
               }
             },
             "services": {}
