@@ -14,7 +14,7 @@ def main(args=None):
     parser.add_argument('--nickname', required=True)
     parser.add_argument('--mode',
                         required=True,
-                        choices=['AWSListener', 'EdgeNode', 'Webapp'])
+                        choices=['AWSListener', 'EdgeNode', 'Webapp', 'Explorer'])
     parser.add_argument('--stage',
                         required=True,
                         choices=['dev', 'test', 'staging', 'prod'])

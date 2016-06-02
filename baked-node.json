@@ -12,7 +12,7 @@
     },
     "Mode": {
       "Type": "String",
-      "AllowedValues": [ "AWSListener", "EdgeNode", "Webapp" ]
+      "AllowedValues": [ "AWSListener", "EdgeNode", "Webapp", "Explorer" ]
     },
     "BitcoinVersion": {
       "Type": "String",
@@ -224,39 +224,23 @@
         "AWS::CloudFormation::Init": {
           "configSets": {
             "EdgeNode": [
-              "InstallEmacs", "RunBitcoind", "BackupBlocks"
+              "RunBitcoind", "BackupBlocks"
             ],
             "AWSListener": [
-              "InstallEmacs", "RunBitcoind", "InstallStrongfellowBTC", "RunListeners"
+              "RunBitcoind", "InstallStrongfellowBTC", "RunListeners"
             ],
             "Webapp": [
-              "InstallEmacs",
               "RunBitcoind",
               "InstallStrongfellowBTC",
               "InstallWebapp",
               "RunWebapp"
             ],
             "Explorer": [
-              "InstallEmacs",
               "RunBitcoind",
               "InstallStrongfellowBTC",
               "InstallExplorer",
               "RunExplorer"
             ]
-          },
-
-          "InstallEmacs": {
-            "packages": {
-              "apt": {
-                "emacs": []
-              }
-            },
-            "groups": {},
-            "users": {},
-            "sources": {},
-            "files": {},
-            "commands": {},
-            "services": {}
           },
 
           "RunBitcoind": {
@@ -564,6 +548,99 @@
               },
               "0600_systemctl_start_posttx": {
                 "command": "systemctl start posttx"
+              }
+            },
+            "services": {}
+          },
+
+
+          "InstallExplorer": {
+            "packages": {
+              "apt": {
+                "openjdk-8-jdk": [],
+                "maven": []
+              }
+            },
+            "groups": {},
+            "users": {},
+            "sources": {},
+            "files": {},
+            "commands": {
+
+              "0200_mkdir_src": {
+                "command": "mkdir -p /home/ubuntu/src"
+              },
+
+              "0400_git_clone_btcdb": {
+                "command": "git clone https://github.com/strongfellow/btcdb.git",
+                "cwd": "/home/ubuntu/src"
+              },
+
+              "0600_git_checkout": {
+                "command": { "Fn::Join": ["", [ "git checkout ", "master", " -b build"]]},
+                "cwd": "/home/ubuntu/src/btcdb"
+              },
+
+              "0800_mvn_package": {
+                "command": "mvn clean package",
+                "cwd": "/home/ubuntu/src/btcdb"
+              }
+
+            },
+            "services": {}
+          },
+
+          "RunExplorer": {
+            "packages": {},
+            "groups": {},
+            "users": {},
+            "sources": {},
+            "files": {
+              "/etc/systemd/system/explorer.service": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "[Unit]",
+                      "Description=Strongfellow Blockchain Explorer",
+                      "After=network.target",
+                      "",
+                      "[Service]",
+                      "Type=simple",
+                      "User=ubuntu",
+                      { "Fn::Join": [" ", [
+                        "ExecStart=/usr/bin/java",
+                        "-jar",
+                        "/home/ubuntu/src/btcdb/target/btcdb-1.0-SNAPSHOT.jar"
+                        ]]
+                      },
+                      "",
+                      "[Install]",
+                      "WantedBy=multi-user.target",
+                      ""
+                    ]
+                  ]
+                },
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "0000_mkdir": {
+		"command": "mkdir -p /data/explorer"
+	      },
+	      "0010_chown": {
+		"command": "chown ubuntu:ubuntu /data/explorer"
+	      },
+	      "0010_chmod": {
+		"command": "chmod a+r /data/bitcoin/.bitcoin/blocks"
+	      },
+              "0100_systemctl_enable_webapp": {
+                "command": "systemctl enable webapp"
+              },
+              "0200_systemctl_start_webapp": {
+                "command": "systemctl start webapp"
               }
             },
             "services": {}
