@@ -326,8 +326,9 @@
           "InstallStrongfellowBTC": {
             "packages": {
               "apt": {
-                "python-dev": [],
-                "python-pip": []
+		"python3-setuptools": [],
+                "python3-dev": [],
+                "python3-pip": []
               }
             },
             "groups": {},
@@ -336,7 +337,7 @@
             "files": {},
             "commands": {
               "0000_install_deps": {
-                "command": "pip install boto3 pyzmq msgpack-python"
+                "command": "pip3 install boto3 pyzmq msgpack-python"
               },
 
               "0200_mkdir_src": {
@@ -354,7 +355,7 @@
               },
 
               "0800_install_strongfellow": {
-                "command": "python setup.py install",
+                "command": "python3 setup.py install",
                 "cwd": "/home/ubuntu/src/strongfellowbtc"
               }
             },
