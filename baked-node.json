@@ -558,7 +558,7 @@
           "InstallExplorer": {
             "packages": {
               "apt": {
-		"sqlite3": []
+		"sqlite3": [],
                 "openjdk-8-jdk": [],
                 "maven": []
               }
