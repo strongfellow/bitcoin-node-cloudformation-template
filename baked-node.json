@@ -610,7 +610,7 @@
                       "[Service]",
                       "Type=simple",
                       "User=ubuntu",
-                      "ExecStart=/usr/local/bin/post-blocks-from-blocks-dir"
+                      "ExecStart=/usr/local/bin/post-blocks-from-blocks-dir",
                       "",
                       "[Install]",
                       "WantedBy=multi-user.target",
