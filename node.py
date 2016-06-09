@@ -9,7 +9,7 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
     parser = argparse.ArgumentParser()
-
+    parser.add_argument('--volume-size', default=120, help='the size in GB of the data volume', type=int)
     parser.add_argument('--az', default='us-west-2a')
     parser.add_argument('--nickname', required=True)
     parser.add_argument('--mode',
@@ -82,6 +82,10 @@ def main(args=None):
             {
                 'ParameterKey': 'Snapshot',
                 'ParameterValue': args.snapshot_id
+            },
+            {
+                'ParameterKey': 'VolumeSize',
+                'ParameterValue': str(args.volume_size)
             },
             {
                 'ParameterKey': 'Stage',
