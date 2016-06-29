@@ -188,6 +188,15 @@
               },
               {
                 "Effect": "Allow",
+                "Action": "S3:GetObject",
+                "Resource": { "Fn::Join": ["", [
+                    "arn:aws:s3:::aws-codedeploy-",
+                    { "Ref": "AWS::Region" },
+                    "/latest/install"
+                  ]]}
+              },
+              {
+                "Effect": "Allow",
                 "Action": "kinesis:Put*",
                 "Resource": {
                   "Fn::Join": [ "", [
