@@ -336,8 +336,10 @@
           },
           "InstallCodeDeployAgent": {
             "packages": {
-              "software-properties-common": [],
-              "awscli": []
+              "apt": {
+                "software-properties-common": [],
+                "awscli": []
+              }
             },
             "groups": {},
             "users": {},
@@ -353,26 +355,18 @@
               "00300_apt_install_ruby2": {
                 "command": "apt-get -y install ruby2.0"
               },
-              "00400": {
-                "command": [
-                  "aws",
-                  "s3",
-                  "cp",
-                  { "Fn::Join": ["", [
-                    "s3://aws-codedeploy-",
-                    { "Ref": "AWS::Region" },
-                    "/latest/install"
-                  ]]},
-                  "/home/ubuntu/install-codedeploy",
-                  "--region",
-                  { "Ref": "AWS::Region" }
-                ]
+              "00400_download_install_script": {
+                "command": { "Fn::Join": ["", [
+                  "aws s3 cp ",
+                  "s3://aws-codedeploy-", { "Ref": "AWS::Region" }, "/latest/install",
+                  " /home/ubuntu --region ", { "Ref": "AWS::Region" }
+                  ]]}
               },
-              "00500": {
-                "command": "chmod a+x /home/ubuntu/install-codedeploy"
+              "00500_chmod_install_script": {
+                "command": "chmod a+x /home/ubuntu/install"
               },
-              "00600": {
-                "command": "/home/ubuntu/install-codedeploy auto",
+              "00600_install_codedeploy": {
+                "command": "/home/ubuntu/install auto",
                 "cwd": "/home/ubuntu"
               }
             },
