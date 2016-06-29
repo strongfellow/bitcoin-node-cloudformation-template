@@ -12,7 +12,7 @@
     },
     "Mode": {
       "Type": "String",
-      "AllowedValues": [ "AWSListener", "EdgeNode", "Webapp", "Explorer" ]
+      "AllowedValues": [ "AWSListener", "EdgeNode", "Webapp", "Explorer", "WhiteLabel" ]
     },
     "BitcoinVersion": {
       "Type": "String",
@@ -223,6 +223,9 @@
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "configSets": {
+            "WhiteLabel": [
+              "RunBitcoind", "InstallCodeDeployAgent", "RunCodeDeployAgent"
+            ],
             "EdgeNode": [
               "RunBitcoind", "BackupBlocks"
             ],
@@ -320,6 +323,66 @@
                 "command": "systemctl start bitcoind"
               }
             },
+            "services": {}
+          },
+          "InstallCodeDeployAgent": {
+            "packages": {
+              "software-properties-common": [],
+              "awscli": []
+            },
+            "groups": {},
+            "users": {},
+            "sources": {},
+            "files": {},
+            "commands": {
+              "00100_add_brightbox_repo": {
+                "command": "apt-add-repository -y ppa:brightbox/ruby-ng"
+              },
+              "00200_apt_update": {
+                "command": "apt-get -y update"
+              },
+              "00300_apt_install_ruby2": {
+                "command": "apt-get -y install ruby2.0"
+              },
+              "00400": {
+                "command": [
+                  "aws",
+                  "s3",
+                  "cp",
+                  { "Fn::Join": ["", [
+                    "s3://aws-codedeploy-",
+                    { "Ref": "AWS::Region" },
+                    "/latest/install"
+                  ]]},
+                  "/home/ubuntu/install-codedeploy",
+                  "--region",
+                  { "Ref": "AWS::Region" }
+                ]
+              },
+              "00500": {
+                "command": "chmod a+x /home/ubuntu/install-codedeploy"
+              },
+              "00600": {
+                "command": "/home/ubuntu/install-codedeploy auto",
+                "cwd": "/home/ubuntu"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "codedeploy-agent" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true"
+                }
+              }
+            }
+          },
+          "RunCodeDeployAgent": {
+            "packages": {},
+            "groups": {},
+            "users": {},
+            "sources": {},
+            "files": {},
+            "commands": {},
             "services": {}
           },
 

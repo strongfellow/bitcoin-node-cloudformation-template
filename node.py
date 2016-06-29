@@ -9,12 +9,13 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
     parser = argparse.ArgumentParser()
+    parser.add_argument('--region', default='us-west-2')
     parser.add_argument('--volume-size', default=120, help='the size in GB of the data volume', type=int)
     parser.add_argument('--az', default='us-west-2a')
     parser.add_argument('--nickname', required=True)
     parser.add_argument('--mode',
                         required=True,
-                        choices=['AWSListener', 'EdgeNode', 'Webapp', 'Explorer'])
+                        choices=['AWSListener', 'EdgeNode', 'Webapp', 'Explorer', 'WhiteLabel' ])
     parser.add_argument('--stage',
                         required=True,
                         choices=['dev', 'test', 'staging', 'prod'])
@@ -46,7 +47,7 @@ def main(args=None):
 
     body = open('baked-node.json').read()
 
-    client = boto3.client('cloudformation')
+    client = boto3.client('cloudformation', region_name=args.region)
     response = client.create_stack(
         StackName=stack_name,
         TemplateBody=body,
