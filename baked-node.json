@@ -124,6 +124,66 @@
     }
   },
   "Resources": {
+    "CodeDeployTrustRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Sid": "1",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  { "Fn::Join": [".", ["codedeploy", {"Ref": "AWS::Region"}, "amazonaws", "com"]] }
+                ]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+
+    "CodeDeployRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "CodeDeployPolicy",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Resource": [
+                "*"
+              ],
+              "Action": [
+                "ec2:Describe*"
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Resource": [
+                "*"
+              ],
+              "Action": [
+                "autoscaling:CompleteLifecycleAction",
+                "autoscaling:DeleteLifecycleHook",
+                "autoscaling:DescribeLifecycleHooks",
+                "autoscaling:DescribeAutoScalingGroups",
+                "autoscaling:PutLifecycleHook",
+                "autoscaling:RecordLifecycleActionHeartbeat"
+              ]
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "CodeDeployTrustRole"
+          }
+        ]
+      }
+    },
+
     "InitializationWaitConditionHandle": {
       "Type" : "AWS::CloudFormation::WaitConditionHandle"
     },
@@ -188,15 +248,6 @@
               },
               {
                 "Effect": "Allow",
-                "Action": "S3:GetObject",
-                "Resource": { "Fn::Join": ["", [
-                    "arn:aws:s3:::aws-codedeploy-",
-                    { "Ref": "AWS::Region" },
-                    "/latest/install"
-                  ]]}
-              },
-              {
-                "Effect": "Allow",
                 "Action": "kinesis:Put*",
                 "Resource": {
                   "Fn::Join": [ "", [
@@ -215,6 +266,28 @@
                 "Effect": "Allow",
                 "Action": "ec2:CreateSnapshot",
                 "Resource": "*"
+              },
+              {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:Get*",
+                      "s3:List*"
+                    ],
+                    "Resource": [
+                      { "Fn::Join": ["", [
+                        "arn:aws:s3:::strongfellow-codedeploy-", {"Ref": "AWS::Region"}
+                      ]]},
+                      { "Fn::Join": ["", [
+                        "arn:aws:s3:::aws-codedeploy-",
+                        { "Ref": "AWS::Region" },
+                        "/*"
+                      ]]}
+                    ]
+                  }
+                ]
               }
             ]
           }
