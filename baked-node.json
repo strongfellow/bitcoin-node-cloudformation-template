@@ -268,25 +268,20 @@
                 "Resource": "*"
               },
               {
-                "Version": "2012-10-17",
-                "Statement": [
-                  {
-                    "Effect": "Allow",
-                    "Action": [
-                      "s3:Get*",
-                      "s3:List*"
-                    ],
-                    "Resource": [
-                      { "Fn::Join": ["", [
-                        "arn:aws:s3:::strongfellow-codedeploy-", {"Ref": "AWS::Region"}
-                      ]]},
-                      { "Fn::Join": ["", [
-                        "arn:aws:s3:::aws-codedeploy-",
-                        { "Ref": "AWS::Region" },
-                        "/*"
-                      ]]}
-                    ]
-                  }
+                "Effect": "Allow",
+                "Action": [
+                  "s3:Get*",
+                  "s3:List*"
+                ],
+                "Resource": [
+                  { "Fn::Join": ["", [
+                    "arn:aws:s3:::strongfellow-codedeploy-", {"Ref": "AWS::Region"}
+                  ]]},
+                  { "Fn::Join": ["", [
+                    "arn:aws:s3:::aws-codedeploy-",
+                    { "Ref": "AWS::Region" },
+                    "/*"
+                  ]]}
                 ]
               }
             ]
