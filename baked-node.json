@@ -275,12 +275,10 @@
                 ],
                 "Resource": [
                   { "Fn::Join": ["", [
-                    "arn:aws:s3:::strongfellow-codedeploy-", {"Ref": "AWS::Region"}
+                      "arn:aws:s3:::strongfellow-codedeploy-artifacts-", {"Ref": "AWS::Region"}, "/*"
                   ]]},
                   { "Fn::Join": ["", [
-                    "arn:aws:s3:::aws-codedeploy-",
-                    { "Ref": "AWS::Region" },
-                    "/*"
+                      "arn:aws:s3:::aws-codedeploy-", { "Ref": "AWS::Region" }, "/*"
                   ]]}
                 ]
               }
