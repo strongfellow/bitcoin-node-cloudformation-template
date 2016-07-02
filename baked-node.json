@@ -101,10 +101,10 @@
       "Type": "AWS::EC2::Subnet::Id"
     },
     "VolumeSize": {
-      "Default": "100",
+      "Default": "120",
       "Description": "Size of EBS volume",
       "Type": "Number",
-      "MinValue": "100",
+      "MinValue": "40",
       "MaxValue": "300"
     },
     "VPC": {
@@ -114,6 +114,9 @@
   "Conditions": {
     "UseSnapshotCondition": {
       "Fn::Not": [ { "Fn::Equals": [{ "Ref": "Snapshot"}, "NO_SNAPSHOT_ID"] } ]
+    },
+    "TestnetCondition": {
+      "Fn::Equals": [{ "Ref": "BitcoinNetwork"}, "testnet3"]
     }
   },
   "Mappings": {
@@ -336,6 +339,8 @@
                   "Fn::Join": [
                     "",
                     [
+                      { "Fn::If": ["TestnetCondition", "", "# "] }, "testnet=1",
+                      "\n",
                       "rpcuser=", { "Ref": "BitcoinRpcUser" },
                       "\n",
                       "rpcpassword=", { "Ref": "BitcoinRpcPassword" },

@@ -9,8 +9,9 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
     parser = argparse.ArgumentParser()
+    parser.add_argument('--network', default='main', choices=['main', 'testnet3', 'segnet'])
     parser.add_argument('--region', default='us-west-2')
-    parser.add_argument('--volume-size', default=120, help='the size in GB of the data volume', type=int)
+    parser.add_argument('--volume-size', help='the size in GB of the data volume', type=int)
     parser.add_argument('--az', default='us-west-2a')
     parser.add_argument('--nickname', required=True)
     parser.add_argument('--mode',
@@ -36,6 +37,10 @@ def main(args=None):
     parser.add_argument('--key-name',
                         default='thinkpad')
     args = parser.parse_args(args)
+
+    volume_size = args.volume_size
+    if volume_size is None:
+        volume_size = 120 if args.network == 'main' else 40
 
     stack_name = '{nickname}-{mode}'.format(
         nickname=args.nickname,
@@ -82,11 +87,11 @@ def main(args=None):
             },
             {
                 'ParameterKey': 'Snapshot',
-                'ParameterValue': args.snapshot_id
+                'ParameterValue': args.snapshot_id if args.snapshot_id.startswith('s-') else 'NO_SNAPSHOT_ID'
             },
             {
                 'ParameterKey': 'VolumeSize',
-                'ParameterValue': str(args.volume_size)
+                'ParameterValue': str(volume_size)
             },
             {
                 'ParameterKey': 'Stage',
@@ -99,6 +104,18 @@ def main(args=None):
             {
                 'ParameterKey': 'HostNickName',
                 'ParameterValue': host_nick_name
+            },
+            {
+                'ParameterKey': 'BitcoinNetwork',
+                'ParameterValue': args.network
+            },
+            {
+                'ParameterKey': 'BitcoinPort',
+                'ParameterValue': '18333' if args.network == 'testnet' else '8333'
+            },
+            {
+                'ParameterKey': 'BitcoinRpcPort',
+                'ParameterValue': '18332' if args.network == 'testnet' else '8332'
             },
         ],
         TimeoutInMinutes=timeout_in_minutes,
