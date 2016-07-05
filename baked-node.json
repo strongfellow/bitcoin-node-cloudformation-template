@@ -352,13 +352,13 @@
                       "checkblocks=", { "Ref": "BitcoinCheckBlocks" },
                       "\n",
                       "\n",
-                      "zmqpubhashtx=tcp://127.0.0.1:", { "Ref": "HashTxPort" },
+                      "zmqpubhashtx=tcp://0.0.0.0:", { "Ref": "HashTxPort" },
                       "\n",
-                      "zmqpubhashblock=tcp://127.0.0.1:", { "Ref": "HashBlockPort" },
+                      "zmqpubhashblock=tcp://0.0.0.0:", { "Ref": "HashBlockPort" },
                       "\n",
-                      "zmqpubrawtx=tcp://127.0.0.1:", { "Ref": "RawTxPort" },
+                      "zmqpubrawtx=tcp://0.0.0.0:", { "Ref": "RawTxPort" },
                       "\n",
-                      "zmqpubrawblock=tcp://127.0.0.1:", { "Ref": "RawBlockPort" },
+                      "zmqpubrawblock=tcp://0.0.0.0:", { "Ref": "RawBlockPort" },
                       "\n"
                     ]
                   ]

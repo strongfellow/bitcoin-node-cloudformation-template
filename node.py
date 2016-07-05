@@ -111,11 +111,11 @@ def main(args=None):
             },
             {
                 'ParameterKey': 'BitcoinPort',
-                'ParameterValue': '18333' if args.network == 'testnet' else '8333'
+                'ParameterValue': '18333' if args.network == 'testnet3' else '8333'
             },
             {
                 'ParameterKey': 'BitcoinRpcPort',
-                'ParameterValue': '18332' if args.network == 'testnet' else '8332'
+                'ParameterValue': '18332' if args.network == 'testnet3' else '8332'
             },
         ],
         TimeoutInMinutes=timeout_in_minutes,
